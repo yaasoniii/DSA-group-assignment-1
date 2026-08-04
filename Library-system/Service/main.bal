@@ -66,7 +66,7 @@ map<string> institutionStore = {}; // acts as a set: name -> name
 
 service /library on new http:Listener(8080) {
 
-    // ---------------- Asset CRUD (Person 2) ----------------
+    // ---------------- Asset CRUD ----------------
 
     resource function post assets(@http:Payload Asset newAsset)
             returns Asset|http:Conflict|http:BadRequest {
@@ -109,7 +109,7 @@ service /library on new http:Listener(8080) {
         return {message: "Deleted " + assetTag};
     }
 
-    // ------------- Views & filtering (Person 3) -------------
+    // ------------- Views & filtering  -------------
 
     resource function get assets/institution/[string institution]() returns Asset[] {
         return from Asset a in assetStore
@@ -137,7 +137,7 @@ service /library on new http:Listener(8080) {
             select a;
     }
 
-    // ---------- Institution management (Person 4) ----------
+    // ---------- Institution management ----------
 
     resource function get institutions() returns string[] {
         return institutionStore.toArray();
@@ -160,7 +160,7 @@ service /library on new http:Listener(8080) {
         return {message: "Institution removed: " + name};
     }
 
-    // ------------ Component management (Person 4) ------------
+    // ------------ Component management ------------
 
     resource function post assets/[string assetTag]/components(@http:Payload Component comp)
             returns Asset|http:NotFound {
@@ -188,7 +188,7 @@ service /library on new http:Listener(8080) {
         return asset;
     }
 
-    // ------------- Schedule management (Person 4) -------------
+    // ------------- Schedule management  -------------
 
     resource function post assets/[string assetTag]/schedules(@http:Payload Schedule sched)
             returns Asset|http:NotFound {
@@ -216,7 +216,7 @@ service /library on new http:Listener(8080) {
         return asset;
     }
 
-    // ------------- Work orders & tasks (Person 4) -------------
+    // ------------- Work orders & tasks  -------------
 
     resource function post assets/[string assetTag]/workorders(@http:Payload WorkOrder wo)
             returns Asset|http:NotFound {
