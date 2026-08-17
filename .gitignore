@@ -1,0 +1,9 @@
+# Ballerina build output - every package generates one of these when compiled
+**/target/
+
+# Local Ballerina settings/auth tokens - shouldn't be shared across the team
+**/.ballerina/
+
+# OS junk files
+.DS_Store
+Thumbs.db
