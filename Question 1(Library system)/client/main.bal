@@ -1,5 +1,9 @@
-import ballerina/io;
+import ballerina/http;
 
-public function main() {
-    io:println("Hello, World!");
+http:Client libClient = check new ("http://localhost:8080/library", {
+    http1Settings: {keepAlive: http:KEEPALIVE_NEVER}
+});
+
+public function main() returns error? {
+    check assetManagementMenu();
 }
