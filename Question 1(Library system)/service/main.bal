@@ -1,9 +1,6 @@
 import ballerina/http;
 import ballerina/time;
 
-// ==========================================================
-// DATA MODELS
-// ==========================================================
 
 public type Component record {|
     string compId;
@@ -52,17 +49,11 @@ public type StatusMessage record {|
     string message;
 |};
 
-// ==========================================================
-// IN-MEMORY DATA STORE
-// ==========================================================
-// Person 2 (core API) owns this section + the CRUD block below.
+
 
 map<Asset> assetStore = {};
 map<string> institutionStore = {}; // acts as a set: name -> name
 
-// ==========================================================
-// SERVICE
-// ==========================================================
 
 service /library on new http:Listener(8080) {
 
