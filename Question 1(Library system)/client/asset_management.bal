@@ -45,6 +45,7 @@ function createAssetFlow() returns error? {
     http:Response resp = check libClient->post("/assets", newAsset);
 
     if resp.statusCode == 200 || resp.statusCode == 201 {
+        json _ = check resp.getJsonPayload();
         io:println("Asset created: ", newAsset.assetTag);
     } else {
         json body = check resp.getJsonPayload();
@@ -66,6 +67,7 @@ function viewAssetFlow() returns error? {
         io:println("Failed to view asset.");
     }
 }
+
 
 function updateAssetFlow() returns error? {
     string assetTag = io:readln("Enter asset tag to update: ");
@@ -104,6 +106,7 @@ function updateAssetFlow() returns error? {
         updatedAsset
     );
     if resp.statusCode == 200 || resp.statusCode == 204 {
+        json _ = check resp.getJsonPayload();
         io:println("Asset updated: ", assetTag);
     } else {
         io:println("Failed to update asset.");
