@@ -154,3 +154,24 @@ function printAssetList(Asset[] assets) {
         printAssetSummary(a);
     }
 }
+
+// the code below is shared. fetch a single asset by tag, it is used by asset.bal, shcedules.bal and loan_book
+
+function fetchAsset(string assetTag) returns Asset? {
+    [int, json]|error result = httpGet("/assets/" + assetTag);
+    if result is error {
+        io:println("Request failed: " + result.message());
+        return ();
+    }
+    var [status, body] = result;
+    if status == 200 {
+        Asset|error a = body.cloneWithType(Asset);
+        if a is error {
+            io:println("Failed to parse asset: " + a.message());
+            return ();
+        }
+        return a;
+    }
+    printApiError(status, body);
+    return ();
+}
