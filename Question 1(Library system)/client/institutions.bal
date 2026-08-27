@@ -19,3 +19,20 @@ function institutionMenu() returns error? {
         }
     }
 }
+
+function addInstitution() {
+    string name = prompt("Institution name");
+    json payload = {name: name};
+    [int, json]|error result = httpPost("/institutions", payload);
+    if result is error {
+        io:println("Request failed: " + result.message());
+        return;
+    }
+    var [status, body] = result;
+    if status == 200 {
+        io:println("Institution added.");
+    } else {
+        printApiError(status, body);
+    }
+}
+
