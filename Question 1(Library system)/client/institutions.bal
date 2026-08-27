@@ -20,6 +20,27 @@ function institutionMenu() returns error? {
     }
 }
 
+function listInstitutions() {
+    [int, json]|error result = httpGet("/institutions");
+    if result is error {
+        io:println("Request failed: " + result.message());
+        return;
+    }
+    var [status, body] = result;
+    if status == 200 {
+        string[]|error names = body.cloneWithType();
+        if names is string[] {
+            io:println("\n-- Registered Institutions (" + names.length().toString() + ") --");
+            foreach string n in names {
+                io:println("  - " + n);
+            }
+        }
+    } else {
+        printApiError(status, body);
+    }
+
+}
+
 function addInstitution() {
     string name = prompt("Institution name");
     json payload = {name: name};
