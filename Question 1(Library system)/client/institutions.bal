@@ -57,3 +57,17 @@ function addInstitution() {
     }
 }
 
+function removeInstitution() {
+    string name = prompt("Institution name to remove");
+    [int, json]|error result = httpDelete("/institutions/" + name);
+    if result is error {
+        io:println("Request failed: " + result.message());
+        return;
+    }
+    var [status, body] = result;
+    if status == 200 {
+        io:println("Institution removed.");
+    } else {
+        printApiError(status, body);
+    }
+}
