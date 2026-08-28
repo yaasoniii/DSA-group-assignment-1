@@ -1,7 +1,7 @@
 import ballerina/io;
 
 
-function loanBookFlow() {
+function loanBookFlow() returns error? {
     string assetTag = prompt("Asset tag to loan/book");
     Asset? existing = fetchAsset(assetTag);
     if existing is () {

@@ -1,3 +1,4 @@
+import ballerina/io;
 function scheduleMenu() returns error? {
     boolean back = false;
     while !back {
