@@ -100,7 +100,7 @@ function statusView() {
 }
 
 
-function overdueDashboard() {
+function overdueDashboard() returns error? {
     [int, json]|error result = httpGet("/assets/overdue");
     if result is error {
         io:println("Request failed: " + result.message());

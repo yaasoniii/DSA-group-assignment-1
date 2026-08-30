@@ -128,4 +128,4 @@ function deleteAssetFlow() returns error? {
     }
 }
 
-function viewsMenu() returns error? { io:println("Not implemented yet."); }
+
