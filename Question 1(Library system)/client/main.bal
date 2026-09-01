@@ -91,4 +91,87 @@ function printMainMenu() {
     io:println("0. Exit");
     io:println("--------------------------------------------------------");
 }
-// someone has to do the function for the main menu
+
+// Small input helpers — used across every feature file
+
+
+function prompt(string label) returns string {
+    return io:readln(label + ": ").trim();
+}
+
+function promptWithDefault(string label, string current) returns string {
+    string entered = io:readln(label + " [" + current + "]: ").trim();
+    return entered.length() == 0 ? current : entered;
+}
+
+
+// Printing helpers — used across every feature file
+
+
+function printAssetSummary(Asset a) {
+    io:println("  " + a.assetTag + " | " + a.name + " | " + a.status +
+            " | " + a.institution + " | " + a.site);
+}
+
+function printAssetDetail(Asset a) {
+    io:println("---------------------------------------------------------");
+    io:println("Asset Tag     : " + a.assetTag);
+    io:println("Name          : " + a.name);
+    io:println("Description   : " + a.description);
+    io:println("Institution   : " + a.institution);
+    io:println("Site          : " + a.site);
+    io:println("Status        : " + a.status);
+    io:println("Date Acquired : " + a.dateAcquired);
+
+    io:println("Components    : " + a.components.length().toString());
+    foreach Component c in a.components {
+        io:println("   - [" + c.compId + "] " + c.name + " - " + c.description);
+    }
+
+    io:println("Schedules     : " + a.schedules.length().toString());
+    foreach Schedule s in a.schedules {
+        io:println("   - [" + s.scheduleId + "] " + s.'type + " due " + s.dueDate +
+                " - " + s.description);
+    }
+
+    io:println("Work Orders   : " + a.workOrders.length().toString());
+    foreach WorkOrder wo in a.workOrders {
+        io:println("   - [" + wo.orderId + "] " + wo.status + " - " + wo.description);
+        foreach WorkOrderTask t in wo.tasks {
+            string done = t.completed ? "done" : "pending";
+            io:println("        * [" + t.taskId + "] " + t.description + " (" + done + ")");
+        }
+    }
+    io:println("---------------------------------------------------------");
+}
+
+function printAssetList(Asset[] assets) {
+    if assets.length() == 0 {
+        io:println("(no assets found)");
+        return;
+    }
+    foreach Asset a in assets {
+        printAssetSummary(a);
+    }
+}
+
+// the code below is shared. fetch a single asset by tag, it is used by asset.bal, shcedules.bal and loan_book
+
+function fetchAsset(string assetTag) returns Asset? {
+    [int, json]|error result = httpGet("/assets/" + assetTag);
+    if result is error {
+        io:println("Request failed: " + result.message());
+        return ();
+    }
+    var [status, body] = result;
+    if status == 200 {
+        Asset|error a = body.cloneWithType(Asset);
+        if a is error {
+            io:println("Failed to parse asset: " + a.message());
+            return ();
+        }
+        return a;
+    }
+    printApiError(status, body);
+    return ();
+}
