@@ -17,11 +17,11 @@ Two independent parts, each in its own top-level folder.
 ├── Question 1(Library system)/        # Q1 — RESTful API (50 marks) — IN PROGRESS
 │   ├── service/                       # Ballerina REST API, port 8080
 │   │   ├── Ballerina.toml
-│   │   └── main.bal
-│   ├── Service/                       # ⚠️ see "Known issue" below
 │   │   ├── Dependencies.toml
+│   │   ├── main.bal
 │   │   └── tests/
-│   │       └── asset_service_test.bal
+│   │       ├── asset_service_test.bal
+│   │       └── maintenance_service_test.bal   # schedules, work orders, sub-tasks, overdue
 │   └── client/                        # Ballerina CLI client
 │       ├── Ballerina.toml
 │       ├── Dependencies.toml
@@ -33,6 +33,7 @@ Two independent parts, each in its own top-level folder.
 │       ├── schedules.bal              # schedule manager
 │       ├── work_orders.bal            # work orders & tasks
 │       ├── loan_book.bal              # loan/booking flow
+│       ├── date_utils.bal             # ISO date validation + today's date
 │       └── http_utils.bal             # shared HTTP GET/POST/PUT/DELETE helpers
 │
 └── Question 2 (Rental system)/        # Q2 — gRPC (50 marks) — NOT STARTED
@@ -46,20 +47,13 @@ Two independent parts, each in its own top-level folder.
         └── main.bal                   # still the generated "Hello, World!" stub
 ```
 
-## ⚠️ Known issue to fix before submitting Q1
+## ⚠️ Still to fix before submitting Q1
 
-`Question 1(Library system)/` currently has **two differently-cased folders** that should be one:
+The old `Service/` (capital S) vs `service/` (lowercase) folder split is **resolved** —
+everything now lives in the lowercase `service/` package, and `bal build` / `bal test`
+run from there.
 
-- `service/` (lowercase) — has `Ballerina.toml` and `main.bal`
-- `Service/` (capital S) — has `Dependencies.toml` and `tests/`
-
-On most systems you'll actually work on (Linux, macOS with case-sensitive mode, GitHub, CI runners) these are treated as **separate directories**. That means:
-- the real service package (`service/`) has no `Dependencies.toml` of its own yet (Ballerina will regenerate one on first `bal build`, so this alone isn't fatal), and
-- `tests/asset_service_test.bal` is sitting in a folder with no `Ballerina.toml`/`main.bal`, so `bal test` won't find the package config it needs.
-
-**Fix:** move `Dependencies.toml` and `tests/` into the lowercase `service/` folder and delete the stray `Service/` folder, then re-run `bal build` / `bal test` from `service/` to confirm it resolves.
-
-Also worth a look while you're in there: `tests/asset_service_test.bal` posts `"status": "active"` / `"inactive"`, which aren't part of the assignment's status enum (`AVAILABLE`, `LOANED_OUT`/`OCCUPIED`, `UNDER_MAINTENANCE`, `DISPOSED`). The server doesn't currently validate the status value, so the tests will still pass, but it's inconsistent with the spec and worth aligning.
+Still open: `tests/asset_service_test.bal` posts `"status": "active"` / `"inactive"`, which aren't part of the assignment's status enum (`AVAILABLE`, `LOANED_OUT`/`OCCUPIED`, `UNDER_MAINTENANCE`, `DISPOSED`). The server doesn't currently validate the asset status value, so the tests still pass, but it's inconsistent with the spec — align the payloads first, then add the enum check to the asset endpoints.
 
 ## Running Question 1 (REST)
 
@@ -89,12 +83,13 @@ Follow the menu prompts.
 | GET | `/library/assets/institution/{institution}` | Filter by institution (campus view) |
 | GET | `/library/assets/site/{site}` | Filter by site |
 | GET | `/library/assets/status/{status}` | Filter by status |
-| GET | `/library/assets/overdue` | Overdue dashboard (schedules of type MAINTENANCE past due) |
+| GET | `/library/assets/overdue` | Overdue dashboard (schedules of type MAINTENANCE past due). Optional `?asOf=YYYY-MM-DD` and `?institution=` query params |
 | GET / POST / DELETE | `/library/institutions` | Manage institutions |
 | POST / DELETE | `/library/assets/{assetTag}/components` | Manage components |
-| POST / DELETE | `/library/assets/{assetTag}/schedules` | Manage schedules |
-| POST / PUT / DELETE | `/library/assets/{assetTag}/workorders` | Manage work orders |
+| POST / DELETE | `/library/assets/{assetTag}/schedules` | Manage servicing + booking schedules |
+| POST / PUT / DELETE | `/library/assets/{assetTag}/workorders` | Open / update / close / delete work orders |
 | POST | `/library/assets/{assetTag}/workorders/{orderId}/tasks` | Add sub-task |
+| PUT / DELETE | `/library/assets/{assetTag}/workorders/{orderId}/tasks/{taskId}` | Complete / re-word / remove a sub-task |
 
 ### Client menu (`client/main.bal` + feature files)
 
@@ -104,7 +99,7 @@ Follow the menu prompts.
 4. Institution Management — `institutions.bal`
 5. Schedule Manager — `schedules.bal`
 6. Component Management — `components.bal`
-7. Work Orders & Tasks — `work_orders.bal`
+7. Work Orders & Tasks (open / update / close, add / complete / remove sub-tasks) — `work_orders.bal`
 8. Loan an Asset / Book a Room or Lab — `loan_book.bal`
 
 ### Example: create an asset
@@ -127,20 +122,37 @@ curl -X POST http://localhost:8080/library/assets \
   `service/main.bal`. The client is split into one file per feature area
   (see table above) plus shared helpers in `http_utils.bal`.
 - `assets/overdue` compares each `MAINTENANCE` schedule's `dueDate` against
-  today's date via `time:utcToString(time:utcNow())` — double-check this
-  behaves as expected on your installed Ballerina version, since the `time`
-  module API has changed across Swan Lake releases.
-- Error handling currently returns `404` for missing assets/institutions,
-  `409` for duplicate creation, and `400` for missing required fields
-  (e.g. blank `assetTag`/`compId`). Add more validation as needed for the
-  "error and wrong API calls" marks — e.g. status-enum validation, date
-  format checks on schedules (the client and service both use
-  `isValidDate`-style ISO date strings), and validation on schedule/work
-  order/component payloads which currently accept anything.
+  today's date via `time:utcToString(time:utcNow())`. Verified against
+  Ballerina 2201.13.4. Pass `?asOf=YYYY-MM-DD` to ask "what was overdue on
+  this day" instead of today, and `?institution=` to scope the dashboard to
+  one campus; an unparseable `asOf` returns `400`.
+- Status/type enums are matched case-insensitively and stored upper-cased,
+  so `"booking"` and `"BOOKING"` both work.
+- Error handling on the maintenance side (schedules, work orders, sub-tasks):
+  - `400` — blank `scheduleId`/`orderId`/`taskId`, a `type` outside
+    `MAINTENANCE`/`BOOKING`, a status outside `OPEN`/`IN_PROGRESS`/`CLOSED`,
+    a `dueDate`/`asOf` that is not a real ISO calendar date (`2025-02-30` and
+    `15/01/2025` are both rejected), or a body `assetTag` that contradicts
+    the one in the URL.
+  - `404` — unknown asset, schedule, work order or sub-task. Deletes used to
+    return `200` for ids that were never there; they now 404.
+  - `409` — duplicate schedule/work-order/sub-task id, closing a work order
+    that still has incomplete sub-tasks, re-opening a `CLOSED` order, or
+    touching the sub-tasks of a closed order.
+- `PUT /assets/{assetTag}` only replaces `components`/`schedules`/`workOrders`
+  when the request actually sends them. Before, the client's asset-edit screen
+  (which sends only the asset's own fields) silently wiped every schedule and
+  work order on the asset.
+- Still open for whoever owns asset CRUD: the asset `status` field itself is
+  not validated against the enum, and `dateAcquired` is not date-checked.
+  `isValidDate` in `service/main.bal` is there to reuse — note that
+  `tests/asset_service_test.bal` currently posts `"active"`/`"inactive"`, so
+  those payloads need aligning first.
+- `bal test` from the service package starts the listener itself, so the
+  tests in `tests/` run without a separate `bal run`.
 - The client is intentionally a thin wrapper over the HTTP API — if you go
   for the bonus web/mobile client, it can call the exact same endpoints.
-- Fix the `service` / `Service` casing issue above before running `bal build`
-  from a fresh clone or in CI.
+- Run the service tests with `bal test` from `Question 1(Library system)/service`.
 
 ## Question 2 (gRPC — Rental Accommodation System)
 
@@ -160,9 +172,10 @@ Per the assignment brief, this needs:
   including handling the streamed response from `list_available_properties`.
 
 ## Submission checklist
-- [ ] Fix `service`/`Service` folder casing in Q1
+- [x] Fix `service`/`Service` folder casing in Q1
 - [ ] Align test payload status values with the assignment's status enum
-- [ ] Add remaining validation to Q1 service (status enum, dates on schedules/work orders)
+- [x] Add validation to schedules / work orders / sub-tasks (dates, enums, missing ids, duplicates)
+- [ ] Add asset-status enum + `dateAcquired` validation to the asset CRUD endpoints
 - [ ] Design `rental.proto` for Q2
 - [ ] Implement Q2 gRPC server
 - [ ] Implement Q2 gRPC client
