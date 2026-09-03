@@ -43,3 +43,4 @@ message Property {
 
 message AddPropertyRequest {
     Property property = 1;
+}
