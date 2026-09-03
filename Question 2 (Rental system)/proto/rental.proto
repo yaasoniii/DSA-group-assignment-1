@@ -28,3 +28,18 @@ service RentalService {
     rpc confirm_booking(ConfirmBookingRequest)
         returns (ConfirmBookingResponse);
 }
+
+message Property {
+    string propertyId = 1;
+    string ownerId = 2;
+    string name = 3;
+    string description = 4;
+    string location = 5;
+    string propertyType = 6;
+    int32 bedrooms = 7;
+    double pricePerNight = 8;
+    bool available = 9;
+}
+
+message AddPropertyRequest {
+    Property property = 1;
