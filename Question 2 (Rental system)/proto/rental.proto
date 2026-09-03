@@ -1,0 +1,30 @@
+syntax = "proto3";
+
+package rental;
+
+service RentalService {
+
+    rpc add_property(AddPropertyRequest)
+        returns (PropertyResponse);
+
+    rpc create_users(stream User)
+        returns (CreateUsersResponse);
+
+    rpc update_property(UpdatePropertyRequest)
+        returns (PropertyResponse);
+
+    rpc remove_property(RemovePropertyRequest)
+        returns (OperationResponse);
+
+    rpc list_available_properties(ListAvailablePropertiesRequest)
+        returns (stream Property);
+
+    rpc search_property(SearchPropertyRequest)
+        returns (SearchPropertyResponse);
+
+    rpc book_property(BookPropertyRequest)
+        returns (BookingResponse);
+
+    rpc confirm_booking(ConfirmBookingRequest)
+        returns (ConfirmBookingResponse);
+}
