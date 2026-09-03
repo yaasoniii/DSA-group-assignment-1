@@ -44,3 +44,95 @@ message Property {
 message AddPropertyRequest {
     Property property = 1;
 }
+
+message PropertyResponse {
+    bool success = 1;
+    string message = 2;
+    Property property = 3;
+}
+
+message UpdatePropertyRequest {
+    string propertyId = 1;
+    Property property = 2;
+}
+
+
+message RemovePropertyRequest {
+    string propertyId = 1;
+}
+
+message OperationResponse {
+    bool success = 1;
+    string message = 2;
+}
+
+message User {
+    string userId = 1;
+    string firstName = 2;
+    string lastName = 3;
+    string email = 4;
+    string phoneNumber = 5;
+}
+
+message CreateUsersResponse {
+    bool success = 1;
+    string message = 2;
+    int32 usersCreated = 3;
+}
+
+message ListAvailablePropertiesRequest {
+    string location = 1;
+    string propertyType = 2;
+    double minPrice = 3;
+    double maxPrice = 4;
+    int32 minBedrooms = 5;
+}
+
+message SearchPropertyRequest {
+    string propertyId = 1;
+    string location = 2;
+    string propertyType = 3;
+    double minPrice = 4;
+    double maxPrice = 5;
+    int32 minBedrooms = 6;
+}
+
+message SearchPropertyResponse {
+    bool success = 1;
+    string message = 2;
+    repeated Property properties = 3;
+}
+
+message BookPropertyRequest {
+    string propertyId = 1;
+    string userId = 2;
+    string checkInDate = 3;
+    string checkOutDate = 4;
+}
+
+message Booking {
+    string bookingId = 1;
+    string propertyId = 2;
+    string userId = 3;
+    string checkInDate = 4;
+    string checkOutDate = 5;
+    string status = 6;
+}
+
+message BookingResponse {
+    bool success = 1;
+    string message = 2;
+    Booking booking = 3;
+}
+
+
+message ConfirmBookingRequest {
+    string bookingId = 1;
+}
+
+message ConfirmBookingResponse {
+    bool success = 1;
+    string message = 2;
+    Booking booking = 3;
+    double totalCost = 4;
+}
