@@ -80,6 +80,13 @@ public type StatusMessage record {|
 
 // ---------------- Validation ----------------
 
+final readonly & string[] ASSET_STATUSES = [
+    "AVAILABLE",
+    "LOANED_OUT",
+    "UNDER_MAINTENANCE",
+    "DISPOSED"
+];
+
 final readonly & string[] SCHEDULE_TYPES = ["MAINTENANCE", "BOOKING"];
 final readonly & string[] WORK_ORDER_STATUSES = ["OPEN", "IN_PROGRESS", "CLOSED"];
 
@@ -167,8 +174,42 @@ service /library on new http:Listener(8080) {
         if assetStore.hasKey(newAsset.assetTag) {
             return <http:Conflict>{body: {message: "Asset already exists: " + newAsset.assetTag}};
         }
-        assetStore[newAsset.assetTag] = newAsset;
-        return newAsset;
+
+        string status = normalizeEnum(newAsset.status);
+        if ASSET_STATUSES.indexOf(status) is () {
+            return <http:BadRequest>{
+                body: {
+                    message: "status must be one of " + oneOf(ASSET_STATUSES) +
+                            ", got: '" + newAsset.status + "'"
+                }
+            };
+        }
+
+        string dateAcquired = newAsset.dateAcquired.trim();
+        if !isValidDate(dateAcquired) {
+            return <http:BadRequest>{
+                body: {
+                    message: "dateAcquired must be a valid ISO date (YYYY-MM-DD), got: '" +
+                            newAsset.dateAcquired + "'"
+                }
+            };
+        }
+
+        Asset validatedAsset = {
+            assetTag: newAsset.assetTag,
+            name: newAsset.name,
+            description: newAsset.description,
+            institution: newAsset.institution,
+            site: newAsset.site,
+            status: status,
+            dateAcquired: dateAcquired,
+            components: newAsset.components,
+            schedules: newAsset.schedules,
+            workOrders: newAsset.workOrders
+        };
+
+        assetStore[newAsset.assetTag] = validatedAsset;
+        return validatedAsset;
     }
 
     resource function get assets() returns Asset[] {
@@ -199,14 +240,35 @@ service /library on new http:Listener(8080) {
                 }
             };
         }
+
+        string status = normalizeEnum(updated.status);
+        if ASSET_STATUSES.indexOf(status) is () {
+            return <http:BadRequest>{
+                body: {
+                    message: "status must be one of " + oneOf(ASSET_STATUSES) +
+                            ", got: '" + updated.status + "'"
+                }
+            };
+        }
+
+        string dateAcquired = updated.dateAcquired.trim();
+        if !isValidDate(dateAcquired) {
+            return <http:BadRequest>{
+                body: {
+                    message: "dateAcquired must be a valid ISO date (YYYY-MM-DD), got: '" +
+                            updated.dateAcquired + "'"
+                }
+            };
+        }
+
         Asset merged = {
             assetTag: assetTag,
             name: updated.name,
             description: updated.description,
             institution: updated.institution,
             site: updated.site,
-            status: updated.status,
-            dateAcquired: updated.dateAcquired,
+            status: status,
+            dateAcquired: dateAcquired,
             components: updated.components ?: existing.components,
             schedules: updated.schedules ?: existing.schedules,
             workOrders: updated.workOrders ?: existing.workOrders

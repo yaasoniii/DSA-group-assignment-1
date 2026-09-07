@@ -12,7 +12,7 @@ function testCreateAndGetAsset() returns error? {
         institution: "Test University",
         site: "Main Campus",
         dateAcquired: "2026-01-01",
-        status: "active"
+        status: "AVAILABLE"
     };
 
     http:Response createResp = check testClient->post("/assets", newAsset);
@@ -34,7 +34,7 @@ function testUpdateAsset() returns error? {
         institution: "Test University",
         site: "Main Campus",
         dateAcquired: "2026-01-01",
-        status: "inactive"
+        status: "UNDER_MAINTENANCE"
     };
 
     http:Response updateResp = check testClient->put("/assets/TEST001", updatedAsset);
@@ -43,7 +43,7 @@ function testUpdateAsset() returns error? {
     http:Response getResp = check testClient->get("/assets/TEST001");
     json payload = check getResp.getJsonPayload();
     test:assertEquals(payload.name, "Test Laptop Updated", "Asset name should be updated");
-    test:assertEquals(payload.status, "inactive", "Asset status should be updated");
+    test:assertEquals(payload.status, "UNDER_MAINTENANCE", "Asset status should be updated");
 }
 
 @test:Config { dependsOn: [testUpdateAsset] }
@@ -53,4 +53,38 @@ function testDeleteAsset() returns error? {
 
     http:Response getResp = check testClient->get("/assets/TEST001");
     test:assertEquals(getResp.statusCode, 404, "Asset should no longer exist");
+}
+
+@test:Config {}
+function testInvalidAssetStatus() returns error? {
+    json newAsset = {
+        assetTag: "STATUS001",
+        name: "Invalid Status Laptop",
+        description: "Testing invalid asset status",
+        institution: "Test University",
+        site: "Main Campus",
+        dateAcquired: "2026-01-01",
+        status: "ACTIVE"
+    };
+
+    http:Response createResp = check testClient->post("/assets", newAsset);
+    test:assertEquals(createResp.statusCode, 400,
+        "Expected 400 Bad Request for invalid asset status");
+}
+
+@test:Config {}
+function testInvalidDateAcquired() returns error? {
+    json newAsset = {
+        assetTag: "DATE001",
+        name: "Invalid Date Laptop",
+        description: "Testing invalid date",
+        institution: "Test University",
+        site: "Main Campus",
+        dateAcquired: "2026-02-30",
+        status: "AVAILABLE"
+    };
+
+    http:Response createResp = check testClient->post("/assets", newAsset);
+    test:assertEquals(createResp.statusCode, 400,
+        "Expected 400 Bad Request for invalid dateAcquired");
 }
