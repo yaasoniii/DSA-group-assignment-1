@@ -6,6 +6,7 @@ function printAssetMenu() {
     io:println("2. View one asset");
     io:println("3. Update asset");
     io:println("4. Delete asset");
+    io:println("5. View all assets");
     io:println("0. Back to main menu");
 }
 
@@ -19,6 +20,7 @@ function assetManagementMenu() returns error? {
             "2" => { check viewAssetFlow(); }
             "3" => { check updateAssetFlow(); }
             "4" => { check deleteAssetFlow(); }
+            "5" => { check viewAllAssetsFlow(); }
             "0" => { running = false; }
             _ => { io:println("Invalid option, please try again."); }
         }
@@ -68,7 +70,25 @@ function viewAssetFlow() returns error? {
     }
 }
 
+function viewAllAssetsFlow() returns error? {
+    http:Response resp = check libClient->get("/assets");
 
+    if resp.statusCode == 200 {
+        json assets = check resp.getJsonPayload();
+        json[] assetList = <json[]>assets;
+
+        if assetList.length() == 0 {
+            io:println("No assets found.");
+        } else {
+            io:println("All Assets (", assetList.length(), " total):");
+            foreach json asset in assetList {
+                io:println(asset.toJsonString());
+            }
+        }
+    } else {
+        io:println("Failed to retrieve assets.");
+    }
+}
 function updateAssetFlow() returns error? {
     string assetTag = io:readln("Enter asset tag to update: ");
     string name = io:readln("Enter new asset name: ");

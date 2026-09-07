@@ -101,7 +101,18 @@ function statusView() {
 
 
 function overdueDashboard() returns error? {
-    [int, json]|error result = httpGet("/assets/overdue");
+    string asOf = prompt("As-of date (YYYY-MM-DD, blank = today)");
+    string path = "/assets/overdue";
+    if asOf.length() > 0 {
+        if !isValidDate(asOf) {
+            io:println("As-of date must be a real calendar date in YYYY-MM-DD format.");
+            return;
+        }
+        path = path + "?asOf=" + asOf;
+    }
+    string cutoff = asOf.length() > 0 ? asOf : todayIso();
+
+    [int, json]|error result = httpGet(path);
     if result is error {
         io:println("Request failed: " + result.message());
         return;
@@ -110,17 +121,24 @@ function overdueDashboard() returns error? {
     if status == 200 {
         Asset[]|error assets = body.cloneWithType();
         if assets is Asset[] {
-            io:println("\n-- Overdue Dashboard (" + assets.length().toString() + " asset(s)) --");
+            io:println("\n-- Overdue Dashboard as at " + cutoff +
+                    " (" + assets.length().toString() + " asset(s)) --");
             if assets.length() == 0 {
                 io:println("Nothing overdue. All clear.");
             }
             foreach Asset a in assets {
                 printAssetSummary(a);
+                // Only the maintenance schedules that are actually past due —
+                // bookings and future services are not overdue work.
                 foreach Schedule s in a.schedules {
-                    io:println("      -> [" + s.scheduleId + "] " + s.'type +
-                            " was due " + s.dueDate + " - " + s.description);
+                    if s.'type == "MAINTENANCE" && s.dueDate < cutoff {
+                        io:println("      -> [" + s.scheduleId + "] MAINTENANCE was due " +
+                                s.dueDate + " - " + s.description);
+                    }
                 }
             }
+        } else {
+            io:println("Failed to parse assets: " + assets.message());
         }
     } else {
         printApiError(status, body);
