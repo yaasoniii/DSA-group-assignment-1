@@ -58,16 +58,11 @@ function createAssetFlow() returns error? {
 function viewAssetFlow() returns error? {
     string assetTag = io:readln("Enter asset tag: ");
 
-    http:Response resp = check libClient->get("/assets/" + assetTag);
-
-    if resp.statusCode == 200 {
-        json asset = check resp.getJsonPayload();
-        io:println("Asset details: ", asset);
-    } else if resp.statusCode == 404 {
-        io:println("Asset not found.");
-    } else {
-        io:println("Failed to view asset.");
+    Asset? asset = fetchAsset(assetTag);
+    if asset is () {
+        return;
     }
+    printAssetDetail(asset);
 }
 
 function viewAllAssetsFlow() returns error? {

@@ -50,7 +50,7 @@ function addInstitution() {
         return;
     }
     var [status, body] = result;
-    if status == 200 {
+    if status == 200 || status == 201 {
         io:println("Institution added.");
     } else {
         printApiError(status, body);
