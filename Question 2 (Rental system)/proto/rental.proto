@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 syntax = "proto3";
 
 package rental;
@@ -56,7 +55,6 @@ message UpdatePropertyRequest {
     string propertyId = 1;
     Property property = 2;
 }
-
 
 message RemovePropertyRequest {
     string propertyId = 1;
@@ -126,7 +124,6 @@ message BookingResponse {
     Booking booking = 3;
 }
 
-
 message ConfirmBookingRequest {
     string bookingId = 1;
 }
@@ -137,143 +134,3 @@ message ConfirmBookingResponse {
     Booking booking = 3;
     double totalCost = 4;
 }
-=======
-syntax = "proto3";
-
-package rental;
-
-service RentalService {
-
-    rpc add_property(AddPropertyRequest)
-        returns (PropertyResponse);
-
-    rpc create_users(stream User)
-        returns (CreateUsersResponse);
-
-    rpc update_property(UpdatePropertyRequest)
-        returns (PropertyResponse);
-
-    rpc remove_property(RemovePropertyRequest)
-        returns (OperationResponse);
-
-    rpc list_available_properties(ListAvailablePropertiesRequest)
-        returns (stream Property);
-
-    rpc search_property(SearchPropertyRequest)
-        returns (SearchPropertyResponse);
-
-    rpc book_property(BookPropertyRequest)
-        returns (BookingResponse);
-
-    rpc confirm_booking(ConfirmBookingRequest)
-        returns (ConfirmBookingResponse);
-}
-
-message Property {
-    string propertyId = 1;
-    string ownerId = 2;
-    string name = 3;
-    string description = 4;
-    string location = 5;
-    string propertyType = 6;
-    int32 bedrooms = 7;
-    double pricePerNight = 8;
-    bool available = 9;
-}
-
-message AddPropertyRequest {
-    Property property = 1;
-}
-
-message PropertyResponse {
-    bool success = 1;
-    string message = 2;
-    Property property = 3;
-}
-
-message UpdatePropertyRequest {
-    string propertyId = 1;
-    Property property = 2;
-}
-
-
-message RemovePropertyRequest {
-    string propertyId = 1;
-}
-
-message OperationResponse {
-    bool success = 1;
-    string message = 2;
-}
-
-message User {
-    string userId = 1;
-    string firstName = 2;
-    string lastName = 3;
-    string email = 4;
-    string phoneNumber = 5;
-}
-
-message CreateUsersResponse {
-    bool success = 1;
-    string message = 2;
-    int32 usersCreated = 3;
-}
-
-message ListAvailablePropertiesRequest {
-    string location = 1;
-    string propertyType = 2;
-    double minPrice = 3;
-    double maxPrice = 4;
-    int32 minBedrooms = 5;
-}
-
-message SearchPropertyRequest {
-    string propertyId = 1;
-    string location = 2;
-    string propertyType = 3;
-    double minPrice = 4;
-    double maxPrice = 5;
-    int32 minBedrooms = 6;
-}
-
-message SearchPropertyResponse {
-    bool success = 1;
-    string message = 2;
-    repeated Property properties = 3;
-}
-
-message BookPropertyRequest {
-    string propertyId = 1;
-    string userId = 2;
-    string checkInDate = 3;
-    string checkOutDate = 4;
-}
-
-message Booking {
-    string bookingId = 1;
-    string propertyId = 2;
-    string userId = 3;
-    string checkInDate = 4;
-    string checkOutDate = 5;
-    string status = 6;
-}
-
-message BookingResponse {
-    bool success = 1;
-    string message = 2;
-    Booking booking = 3;
-}
-
-
-message ConfirmBookingRequest {
-    string bookingId = 1;
-}
-
-message ConfirmBookingResponse {
-    bool success = 1;
-    string message = 2;
-    Booking booking = 3;
-    double totalCost = 4;
-}
->>>>>>> 446562e455bd66ac7ff161ecc1c19062705dbf2d

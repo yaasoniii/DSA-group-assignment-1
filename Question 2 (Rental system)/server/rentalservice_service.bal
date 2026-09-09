@@ -24,7 +24,7 @@ service "RentalService" on ep {
             return {
                 success: false,
                 message: "Property already exists",
-                property: propertyStore[property.propertyId]
+                property: property
             };
         }
 
@@ -263,3 +263,4 @@ function matchesAvailableFilters(
 
     return true;
 }
+
