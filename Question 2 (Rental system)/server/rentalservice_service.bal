@@ -54,3 +54,20 @@ remote function update_property(UpdatePropertyRequest value) returns PropertyRes
             property: updatedProperty
         };
     }
+
+ remote function remove_property(RemovePropertyRequest value) returns OperationResponse|error {
+        if !propertyStore.hasKey(value.propertyId) {
+            return {
+                success: false,
+                message: "Property not found"
+            };
+        }
+
+        _ = propertyStore.remove(value.propertyId);
+
+        return {
+            success: true,
+            message: "Property removed successfully"
+        };
+    }
+}
