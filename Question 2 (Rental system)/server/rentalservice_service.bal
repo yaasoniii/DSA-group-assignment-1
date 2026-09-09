@@ -109,3 +109,32 @@ remote function search_property(SearchPropertyRequest value) returns SearchPrope
 
 }
 
+function matchesSearchFilters(Property property, SearchPropertyRequest value) returns boolean {
+    if value.propertyId != "" && property.propertyId != value.propertyId {
+        return false;
+    }
+
+    if value.location != "" &&
+            property.location.toLowerAscii() != value.location.toLowerAscii() {
+        return false;
+    }
+
+    if value.propertyType != "" &&
+            property.propertyType.toLowerAscii() != value.propertyType.toLowerAscii() {
+        return false;
+    }
+
+    if value.minPrice > 0.0 && property.pricePerNight < value.minPrice {
+        return false;
+    }
+
+    if value.maxPrice > 0.0 && property.pricePerNight > value.maxPrice {
+        return false;
+    }
+
+    if value.minBedrooms > 0 && property.bedrooms < value.minBedrooms {
+        return false;
+    }
+
+    return true;
+}
