@@ -71,3 +71,40 @@ remote function update_property(UpdatePropertyRequest value) returns PropertyRes
         };
     }
 }
+
+remote function search_property(SearchPropertyRequest value) returns SearchPropertyResponse|error {
+    Property[] matches = [];
+    boolean unavailableMatchFound = false;
+
+    foreach Property property in propertyStore {
+        if matchesSearchFilters(property, value) {
+            if property.available {
+                matches.push(property);
+            } else {
+                unavailableMatchFound = true;
+            }
+        }
+    }
+
+    if matches.length() > 0 {
+        return {
+            success: true,
+            message: "Property found",
+            properties: matches
+        };
+    }
+
+    if unavailableMatchFound {
+        return {
+            success: false,
+            message: "Not Available",
+            properties: []
+        };
+    }
+
+    return {
+        success: false,
+        message: "Property not found",
+        properties: []
+    };
+}
