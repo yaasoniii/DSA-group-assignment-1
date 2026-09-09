@@ -138,3 +138,47 @@ function matchesSearchFilters(Property property, SearchPropertyRequest value) re
 
     return true;
 }
+
+remote function list_available_properties(ListAvailablePropertiesRequest value)
+        returns stream<Property, grpc:Error?>|error {
+
+    Property[] availableProperties = [];
+
+    foreach Property property in propertyStore {
+        if property.available && matchesAvailableFilters(property, value) {
+            availableProperties.push(property);
+        }
+    }
+
+    return availableProperties.toStream();
+}
+
+function matchesAvailableFilters(
+        Property property,
+        ListAvailablePropertiesRequest value
+) returns boolean {
+
+    if value.location != "" &&
+            property.location.toLowerAscii() != value.location.toLowerAscii() {
+        return false;
+    }
+
+    if value.propertyType != "" &&
+            property.propertyType.toLowerAscii() != value.propertyType.toLowerAscii() {
+        return false;
+    }
+
+    if value.minPrice > 0.0 && property.pricePerNight < value.minPrice {
+        return false;
+    }
+
+    if value.maxPrice > 0.0 && property.pricePerNight > value.maxPrice {
+        return false;
+    }
+
+    if value.minBedrooms > 0 && property.bedrooms < value.minBedrooms {
+        return false;
+    }
+
+    return true;
+}
