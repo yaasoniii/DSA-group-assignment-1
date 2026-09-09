@@ -4,7 +4,9 @@ listener grpc:Listener ep = new (9090);
 
 map<Property> propertyStore = {};
 
-@grpc:Descriptor {value: RENTAL_DESC}
+@grpc:Descriptor {
+    value: RENTAL_DESC
+}
 service "RentalService" on ep {
 
     remote function add_property(AddPropertyRequest value) returns PropertyResponse|error {
@@ -35,7 +37,25 @@ service "RentalService" on ep {
         };
     }
 
-remote function update_property(UpdatePropertyRequest value) returns PropertyResponse|error {
+    remote function create_users(stream<User, grpc:Error?> clientStream)
+            returns CreateUsersResponse|error {
+
+        int usersCreated = 0;
+
+        check clientStream.forEach(function(User user) {
+            usersCreated += 1;
+        });
+
+        return {
+            success: true,
+            message: "Users created successfully",
+            usersCreated: usersCreated
+        };
+    }
+
+    remote function update_property(UpdatePropertyRequest value)
+            returns PropertyResponse|error {
+
         if !propertyStore.hasKey(value.propertyId) {
             return {
                 success: false,
@@ -46,6 +66,7 @@ remote function update_property(UpdatePropertyRequest value) returns PropertyRes
 
         Property updatedProperty = value.property;
         updatedProperty.propertyId = value.propertyId;
+
         propertyStore[value.propertyId] = updatedProperty;
 
         return {
@@ -55,7 +76,9 @@ remote function update_property(UpdatePropertyRequest value) returns PropertyRes
         };
     }
 
- remote function remove_property(RemovePropertyRequest value) returns OperationResponse|error {
+    remote function remove_property(RemovePropertyRequest value)
+            returns OperationResponse|error {
+
         if !propertyStore.hasKey(value.propertyId) {
             return {
                 success: false,
@@ -70,47 +93,110 @@ remote function update_property(UpdatePropertyRequest value) returns PropertyRes
             message: "Property removed successfully"
         };
     }
-remote function search_property(SearchPropertyRequest value) returns SearchPropertyResponse|error {
-    Property[] matches = [];
-    boolean unavailableMatchFound = false;
 
-    foreach Property property in propertyStore {
-        if matchesSearchFilters(property, value) {
-            if property.available {
-                matches.push(property);
-            } else {
-                unavailableMatchFound = true;
+    remote function list_available_properties(ListAvailablePropertiesRequest value)
+            returns stream<Property, grpc:Error?>|error {
+
+        Property[] availableProperties = [];
+
+        foreach Property property in propertyStore {
+            if property.available && matchesAvailableFilters(property, value) {
+                availableProperties.push(property);
             }
         }
+
+        return availableProperties.toStream();
     }
 
-    if matches.length() > 0 {
-        return {
-            success: true,
-            message: "Property found",
-            properties: matches
-        };
-    }
+    remote function search_property(SearchPropertyRequest value)
+            returns SearchPropertyResponse|error {
 
-    if unavailableMatchFound {
+        Property[] matches = [];
+        boolean unavailableMatchFound = false;
+
+        foreach Property property in propertyStore {
+
+            if matchesSearchFilters(property, value) {
+
+                if property.available {
+                    matches.push(property);
+                } else {
+                    unavailableMatchFound = true;
+                }
+            }
+        }
+
+        if matches.length() > 0 {
+            return {
+                success: true,
+                message: "Property found",
+                properties: matches
+            };
+        }
+
+        if unavailableMatchFound {
+            return {
+                success: false,
+                message: "Not Available",
+                properties: []
+            };
+        }
+
         return {
             success: false,
-            message: "Not Available",
+            message: "Property not found",
             properties: []
         };
     }
 
-    return {
-        success: false,
-        message: "Property not found",
-        properties: []
-    };
+    remote function book_property(BookPropertyRequest value)
+            returns BookingResponse|error {
+
+        Booking booking = {
+            bookingId: "",
+            propertyId: value.propertyId,
+            userId: value.userId,
+            checkInDate: value.checkInDate,
+            checkOutDate: value.checkOutDate,
+            status: "Pending"
+        };
+
+        return {
+            success: false,
+            message: "Booking functionality not implemented yet",
+            booking: booking
+        };
+    }
+
+    remote function confirm_booking(ConfirmBookingRequest value)
+            returns ConfirmBookingResponse|error {
+
+        Booking booking = {
+            bookingId: value.bookingId,
+            propertyId: "",
+            userId: "",
+            checkInDate: "",
+            checkOutDate: "",
+            status: "Pending"
+        };
+
+        return {
+            success: false,
+            message: "Booking confirmation not implemented yet",
+            booking: booking,
+            totalCost: 0.0
+        };
+    }
 }
 
-}
 
-function matchesSearchFilters(Property property, SearchPropertyRequest value) returns boolean {
-    if value.propertyId != "" && property.propertyId != value.propertyId {
+function matchesSearchFilters(
+        Property property,
+        SearchPropertyRequest value
+) returns boolean {
+
+    if value.propertyId != "" &&
+            property.propertyId != value.propertyId {
         return false;
     }
 
@@ -120,38 +206,29 @@ function matchesSearchFilters(Property property, SearchPropertyRequest value) re
     }
 
     if value.propertyType != "" &&
-            property.propertyType.toLowerAscii() != value.propertyType.toLowerAscii() {
+            property.propertyType.toLowerAscii() !=
+                value.propertyType.toLowerAscii() {
         return false;
     }
 
-    if value.minPrice > 0.0 && property.pricePerNight < value.minPrice {
+    if value.minPrice > 0.0 &&
+            property.pricePerNight < value.minPrice {
         return false;
     }
 
-    if value.maxPrice > 0.0 && property.pricePerNight > value.maxPrice {
+    if value.maxPrice > 0.0 &&
+            property.pricePerNight > value.maxPrice {
         return false;
     }
 
-    if value.minBedrooms > 0 && property.bedrooms < value.minBedrooms {
+    if value.minBedrooms > 0 &&
+            property.bedrooms < value.minBedrooms {
         return false;
     }
 
     return true;
 }
 
-remote function list_available_properties(ListAvailablePropertiesRequest value)
-        returns stream<Property, grpc:Error?>|error {
-
-    Property[] availableProperties = [];
-
-    foreach Property property in propertyStore {
-        if property.available && matchesAvailableFilters(property, value) {
-            availableProperties.push(property);
-        }
-    }
-
-    return availableProperties.toStream();
-}
 
 function matchesAvailableFilters(
         Property property,
@@ -164,19 +241,23 @@ function matchesAvailableFilters(
     }
 
     if value.propertyType != "" &&
-            property.propertyType.toLowerAscii() != value.propertyType.toLowerAscii() {
+            property.propertyType.toLowerAscii() !=
+                value.propertyType.toLowerAscii() {
         return false;
     }
 
-    if value.minPrice > 0.0 && property.pricePerNight < value.minPrice {
+    if value.minPrice > 0.0 &&
+            property.pricePerNight < value.minPrice {
         return false;
     }
 
-    if value.maxPrice > 0.0 && property.pricePerNight > value.maxPrice {
+    if value.maxPrice > 0.0 &&
+            property.pricePerNight > value.maxPrice {
         return false;
     }
 
-    if value.minBedrooms > 0 && property.bedrooms < value.minBedrooms {
+    if value.minBedrooms > 0 &&
+            property.bedrooms < value.minBedrooms {
         return false;
     }
 
