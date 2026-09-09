@@ -70,8 +70,6 @@ remote function update_property(UpdatePropertyRequest value) returns PropertyRes
             message: "Property removed successfully"
         };
     }
-}
-
 remote function search_property(SearchPropertyRequest value) returns SearchPropertyResponse|error {
     Property[] matches = [];
     boolean unavailableMatchFound = false;
@@ -108,3 +106,6 @@ remote function search_property(SearchPropertyRequest value) returns SearchPrope
         properties: []
     };
 }
+
+}
+
