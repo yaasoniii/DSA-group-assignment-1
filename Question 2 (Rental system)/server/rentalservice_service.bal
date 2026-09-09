@@ -34,3 +34,23 @@ service "RentalService" on ep {
             property: property
         };
     }
+
+remote function update_property(UpdatePropertyRequest value) returns PropertyResponse|error {
+        if !propertyStore.hasKey(value.propertyId) {
+            return {
+                success: false,
+                message: "Property not found",
+                property: value.property
+            };
+        }
+
+        Property updatedProperty = value.property;
+        updatedProperty.propertyId = value.propertyId;
+        propertyStore[value.propertyId] = updatedProperty;
+
+        return {
+            success: true,
+            message: "Property updated successfully",
+            property: updatedProperty
+        };
+    }
