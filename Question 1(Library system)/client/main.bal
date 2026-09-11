@@ -175,3 +175,45 @@ function fetchAsset(string assetTag) returns Asset? {
     printApiError(status, body);
     return ();
 }
+function overdueDashboard() returns error? {
+    io:println("\n=======================================================");
+    io:println("                 OVERDUE DASHBOARD");
+    io:println("=======================================================");
+
+    [int, json]|error result = httpGet("/assets/overdue");
+
+    if result is error {
+        io:println("Request failed: " + result.message());
+        return;
+    }
+
+    var [status, body] = result;
+
+    if status != 200 {
+        printApiError(status, body);
+        return;
+    }
+
+    Asset[]|error assets = body.cloneWithType(Asset);
+
+    if assets is error {
+        io:println("Failed to parse overdue assets: " + assets.message());
+        return;
+    }
+
+    if assets.length() == 0 {
+        io:println("No overdue assets found.");
+        return;
+    }
+
+    io:println("\nOverdue assets:");
+    io:println("---------------------------------------------------------");
+
+    foreach Asset a in assets {
+        printAssetDetail(a);
+        io:println("");
+    }
+
+    io:println("---------------------------------------------------------");
+    io:println("Total overdue assets: " + assets.length().toString());
+}
