@@ -3,6 +3,7 @@ import ballerina/grpc;
 listener grpc:Listener ep = new (9090);
 
 map<Property> propertyStore = {};
+map<User> userStore = {};
 
 @grpc:Descriptor {
     value: RENTAL_DESC
@@ -40,16 +41,14 @@ service "RentalService" on ep {
     remote function create_users(stream<User, grpc:Error?> clientStream)
             returns CreateUsersResponse|error {
 
-        int usersCreated = 0;
-
         check clientStream.forEach(function(User user) {
-            usersCreated += 1;
+            userStore[user.userId] = user;
         });
 
         return {
             success: true,
             message: "Users created successfully",
-            usersCreated: usersCreated
+            usersCreated: userStore.length()
         };
     }
 
@@ -189,7 +188,6 @@ service "RentalService" on ep {
     }
 }
 
-
 function matchesSearchFilters(
         Property property,
         SearchPropertyRequest value
@@ -228,7 +226,6 @@ function matchesSearchFilters(
 
     return true;
 }
-
 
 function matchesAvailableFilters(
         Property property,
