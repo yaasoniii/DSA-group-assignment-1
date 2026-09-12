@@ -65,6 +65,10 @@ function browseAvailableProperties(RentalServiceClient rentalClient) returns err
 
 }
 
+function searchPropertyById(RentalServiceClient rentalClient) returns errors? {
+    string propertyId = io:readln("Property ID to search for:").trim();
+}
+
 public function main() returns error? {
     RentalServiceClient rentalClient = check new ("http://localhost:9090");
 
@@ -114,6 +118,7 @@ public function main() returns error? {
     io:println("UPDATE:");
     io:println(updateResponse);
 
+    //Replaced by browseAvailableProperties(rentalClient) function
     //stream<Property, grpc:Error?> propertyStream =
     //    check rentalClient->list_available_properties({
     //    location: "Windhoek",
@@ -147,5 +152,7 @@ public function main() returns error? {
     check createSampleUsers(rentalClient);
 
     check browseAvailableProperties(rentalClient);
+
+    check searchPropertyById(rentalClient);
 }
 
