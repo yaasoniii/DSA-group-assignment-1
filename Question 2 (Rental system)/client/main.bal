@@ -10,7 +10,14 @@ function createSampleUsers(RentalServiceClient rentalClient) returns error? {
         {userId: "USER002", firstName:"Bill", lastName:"Gates", email: "billgates@gmail.com", phoneNumber: "0818765432"},
         {userId: "USER003", firstName:"Michael", lastName:"Jackson", email: "mjackson@gmail.com", phoneNumber: "0818765234"}
     ];
+
+    foreach User user in sampleUsers {
+        check streamingClient->sendUser(user);
+        io:println("Sent user: " + user.userId + "(" +  user.firstName + " " + user.lastName + ")");
+    }
 }
+
+
 
 public function main() returns error? {
     RentalServiceClient rentalClient = check new ("http://localhost:9090");
