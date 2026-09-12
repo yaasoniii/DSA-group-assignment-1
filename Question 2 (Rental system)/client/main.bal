@@ -41,6 +41,15 @@ function browseAvailableProperties(RentalServiceClient rentalClient) returns err
     float minPrice = minPriceInput != "" ? check float:fromString(minPriceInput) : 0.0;
     float maxPrice = maxPriceInput != "" ? check float:fromString(maxPriceInput) : 0.0;
     int minBedrooms = minBedroomsInput != "" ? check int:fromString(minBedroomsInput) : 0;
+
+    stream<Property, grpc:Error?> propertyStream = check rentalClient->list_available_properties ({
+        location: location,
+        propertyType: propertyType,
+        minPrice: minPrice,
+        maxPrice: maxPrice,
+        minBedrooms: minBedrooms
+    });
+
     }
 
 public function main() returns error? {
