@@ -2,6 +2,16 @@
 import ballerina/io;
 import ballerina/grpc;
 
+function createSampleUsers(RentalServiceClient rentalClient) returns error? {
+    Create_usersStreamingClient streamingClient = check rentalClient->create_users();
+
+    User[] sampleUsers = [
+        {userId: "USER001", firstName:"Patrick", lastName:"Jane", email: "patrickjane@gmail.com", phoneNumber: "0812345678"},
+        {userId: "USER002", firstName:"Bill", lastName:"Gates", email: "billgates@gmail.com", phoneNumber: "0818765432"},
+        {userId: "USER003", firstName:"Michael", lastName:"Jackson", email: "mjackson@gmail.com", phoneNumber: "0818765234"}
+    ];
+}
+
 public function main() returns error? {
     RentalServiceClient rentalClient = check new ("http://localhost:9090");
 
@@ -80,6 +90,8 @@ SearchPropertyResponse searchResponse = check rentalClient->search_property({
 
     io:println("SEARCH AFTER DELETE:");
     io:println(missingResponse);
+
+    check createSampleUsers(rentalClient);
 }
 
 
