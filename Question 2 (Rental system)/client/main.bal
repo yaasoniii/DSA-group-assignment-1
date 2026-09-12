@@ -1,19 +1,18 @@
-
-import ballerina/io;
 import ballerina/grpc;
+import ballerina/io;
 
 function createSampleUsers(RentalServiceClient rentalClient) returns error? {
     Create_usersStreamingClient streamingClient = check rentalClient->create_users();
 
     User[] sampleUsers = [
-        {userId: "USER001", firstName:"Patrick", lastName:"Jane", email: "patrickjane@gmail.com", phoneNumber: "0812345678"},
-        {userId: "USER002", firstName:"Bill", lastName:"Gates", email: "billgates@gmail.com", phoneNumber: "0818765432"},
-        {userId: "USER003", firstName:"Michael", lastName:"Jackson", email: "mjackson@gmail.com", phoneNumber: "0818765234"}
+        {userId: "USER001", firstName: "Patrick", lastName: "Jane", email: "patrickjane@gmail.com", phoneNumber: "0812345678"},
+        {userId: "USER002", firstName: "Bill", lastName: "Gates", email: "billgates@gmail.com", phoneNumber: "0818765432"},
+        {userId: "USER003", firstName: "Michael", lastName: "Jackson", email: "mjackson@gmail.com", phoneNumber: "0818765234"}
     ];
 
     foreach User user in sampleUsers {
         check streamingClient->sendUser(user);
-        io:println("Sent user: " + user.userId + "(" +  user.firstName + " " + user.lastName + ")");
+        io:println("Sent user: " + user.userId + "(" + user.firstName + " " + user.lastName + ")");
     }
 
     check streamingClient->complete();
@@ -31,7 +30,14 @@ function createSampleUsers(RentalServiceClient rentalClient) returns error? {
 
 }
 
-
+function browseAvailableProperties(RentalServiceClient rentalClient) returns error? {
+    io:println("Leave any filter blank to skip it.");
+    string location = io:readln("Filter by location: ").trim();
+    string propertyType = io:readln("Filter by property type: ").trim();
+    string minPriceInput = io:readln("Min price per night: ").trim();
+    string maxPriceInput = io:readln("Max price per night: ").trim();
+    string minBedroomsInput = io:readln("Min bedrooms: ").trim();
+}
 
 public function main() returns error? {
     RentalServiceClient rentalClient = check new ("http://localhost:9090");
@@ -55,9 +61,9 @@ public function main() returns error? {
     io:println("ADD:");
     io:println(addResponse);
 
-SearchPropertyResponse searchResponse = check rentalClient->search_property({
-    propertyId: "PROP001"
-});
+    SearchPropertyResponse searchResponse = check rentalClient->search_property({
+        propertyId: "PROP001"
+    });
 
     io:println("SEARCH:");
     io:println(searchResponse);
@@ -84,12 +90,12 @@ SearchPropertyResponse searchResponse = check rentalClient->search_property({
 
     stream<Property, grpc:Error?> propertyStream =
         check rentalClient->list_available_properties({
-            location: "Windhoek",
-            propertyType: "Apartment",
-            minPrice: 0.0,
-            maxPrice: 1000.0,
-            minBedrooms: 2
-        });
+        location: "Windhoek",
+        propertyType: "Apartment",
+        minPrice: 0.0,
+        maxPrice: 1000.0,
+        minBedrooms: 2
+    });
 
     io:println("AVAILABLE PROPERTIES:");
 
@@ -113,6 +119,7 @@ SearchPropertyResponse searchResponse = check rentalClient->search_property({
     io:println(missingResponse);
 
     check createSampleUsers(rentalClient);
-}
 
+    check browseAvailableProperties(rentalClient);
+}
 
