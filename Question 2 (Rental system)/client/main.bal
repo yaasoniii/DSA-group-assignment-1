@@ -15,6 +15,20 @@ function createSampleUsers(RentalServiceClient rentalClient) returns error? {
         check streamingClient->sendUser(user);
         io:println("Sent user: " + user.userId + "(" +  user.firstName + " " + user.lastName + ")");
     }
+
+    check streamingClient->complete();
+
+    CreateUsersResponse? response = check streamingClient->receiveCreateUsersResponse();
+
+    if response is CreateUsersResponse {
+        io:println("\nCREATE USERS RESULT:");
+        io:println("  Success       : " + response.success.toString());
+        io:println("  Message       : " + response.message);
+        io:println("  Users created : " + response.usersCreated.toString());
+    } else {
+        io:println("No response received from the server.");
+    }
+
 }
 
 
