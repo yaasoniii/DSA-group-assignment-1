@@ -37,7 +37,11 @@ function browseAvailableProperties(RentalServiceClient rentalClient) returns err
     string minPriceInput = io:readln("Min price per night: ").trim();
     string maxPriceInput = io:readln("Max price per night: ").trim();
     string minBedroomsInput = io:readln("Min bedrooms: ").trim();
-}
+
+    float minPrice = minPriceInput != "" ? check float:fromString(minPriceInput) : 0.0;
+    float maxPrice = maxPriceInput != "" ? check float:fromString(maxPriceInput) : 0.0;
+    int minBedrooms = minBedroomsInput != "" ? check int:fromString(minBedroomsInput) : 0;
+    }
 
 public function main() returns error? {
     RentalServiceClient rentalClient = check new ("http://localhost:9090");
