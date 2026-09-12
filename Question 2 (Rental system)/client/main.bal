@@ -42,7 +42,7 @@ function browseAvailableProperties(RentalServiceClient rentalClient) returns err
     float maxPrice = maxPriceInput != "" ? check float:fromString(maxPriceInput) : 0.0;
     int minBedrooms = minBedroomsInput != "" ? check int:fromString(minBedroomsInput) : 0;
 
-    stream<Property, grpc:Error?> propertyStream = check rentalClient->list_available_properties ({
+    stream<Property, grpc:Error?> propertyStream = check rentalClient->list_available_properties({
         location: location,
         propertyType: propertyType,
         minPrice: minPrice,
@@ -50,7 +50,20 @@ function browseAvailableProperties(RentalServiceClient rentalClient) returns err
         minBedrooms: minBedrooms
     });
 
+    io:println("\nAVAILABLE PROPERTIES BASED ON FILTERS:");
+    int count = 0;
+
+    check from Property p in propertyStream
+        do {
+            count += 1;
+            io:println("  [" + p.propertyId + "] " + p.name + " - " + p.location + " | " + p.bedrooms.toString() + " bed | N$" + p.pricePerNight.toString() + "/night");
+        };
+
+    if count == 0 {
+        io:println(" (No properties found based on the provided filters.)");
     }
+
+}
 
 public function main() returns error? {
     RentalServiceClient rentalClient = check new ("http://localhost:9090");
@@ -101,21 +114,21 @@ public function main() returns error? {
     io:println("UPDATE:");
     io:println(updateResponse);
 
-    stream<Property, grpc:Error?> propertyStream =
-        check rentalClient->list_available_properties({
-        location: "Windhoek",
-        propertyType: "Apartment",
-        minPrice: 0.0,
-        maxPrice: 1000.0,
-        minBedrooms: 2
-    });
+    //stream<Property, grpc:Error?> propertyStream =
+    //    check rentalClient->list_available_properties({
+    //    location: "Windhoek",
+    //    propertyType: "Apartment",
+    //    minPrice: 0.0,
+    //    maxPrice: 1000.0,
+    //    minBedrooms: 2
+    //});
 
-    io:println("AVAILABLE PROPERTIES:");
+    //io:println("AVAILABLE PROPERTIES:");
 
-    check from Property p in propertyStream
-        do {
-            io:println(p);
-        };
+    //check from Property p in propertyStream
+      //  do {
+      //      io:println(p);
+      //  };
 
     OperationResponse removeResponse = check rentalClient->remove_property({
         propertyId: "PROP001"
