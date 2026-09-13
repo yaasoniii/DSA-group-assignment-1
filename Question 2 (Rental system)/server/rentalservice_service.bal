@@ -1,8 +1,21 @@
 import ballerina/grpc;
+import ballerina/io;
 
 listener grpc:Listener ep = new (9090);
 
-map<Property> propertyStore = {};
+map<Property> propertyStore = {
+    "PROP001": {
+        propertyId: "PROP001",
+        ownerId: "USER001",
+        name: "Windhoek Apartment",
+        description: "Two bedroom apartment",
+        location: "Windhoek",
+        propertyType: "Apartment",
+        bedrooms: 2,
+        pricePerNight: 850.0,
+        available: true
+    }
+};
 map<User> userStore = {};
 
 @grpc:Descriptor {
@@ -41,14 +54,17 @@ service "RentalService" on ep {
     remote function create_users(stream<User, grpc:Error?> clientStream)
             returns CreateUsersResponse|error {
 
+        int createdCount = 0;
+
         check clientStream.forEach(function(User user) {
             userStore[user.userId] = user;
+            createdCount += 1;
         });
 
         return {
             success: true,
             message: "Users created successfully",
-            usersCreated: userStore.length()
+            usersCreated: createdCount
         };
     }
 
@@ -93,22 +109,40 @@ service "RentalService" on ep {
         };
     }
 
-    remote function list_available_properties(ListAvailablePropertiesRequest value)
-            returns stream<Property, grpc:Error?>|error {
+    remote function list_available_properties(RentalServicePropertyCaller caller,
+            ListAvailablePropertiesRequest value) returns error? {
 
-        Property[] availableProperties = [];
+        io:println("list_available_properties called with filters: ", value);
+
+        boolean anySent = false;
 
         foreach Property property in propertyStore {
             if property.available && matchesAvailableFilters(property, value) {
-                availableProperties.push(property);
+                check caller->sendProperty(property);
+                anySent = true;
             }
         }
 
-        return availableProperties.toStream();
+        if !anySent {
+            Property sentinel = {
+                propertyId: "",
+                ownerId: "",
+                name: "",
+                description: "",
+                location: "",
+                propertyType: "",
+                bedrooms: 0,
+                pricePerNight: 0.0,
+                available: false
+            };
+            check caller->sendProperty(sentinel);
+        }
+
+        check caller->complete();
     }
 
     remote function search_property(SearchPropertyRequest value)
-            returns SearchPropertyResponse|error {
+                returns SearchPropertyResponse|error {
 
         Property[] matches = [];
         boolean unavailableMatchFound = false;
@@ -149,7 +183,7 @@ service "RentalService" on ep {
     }
 
     remote function book_property(BookPropertyRequest value)
-            returns BookingResponse|error {
+                returns BookingResponse|error {
 
         Booking booking = {
             bookingId: "",
@@ -168,7 +202,7 @@ service "RentalService" on ep {
     }
 
     remote function confirm_booking(ConfirmBookingRequest value)
-            returns ConfirmBookingResponse|error {
+                returns ConfirmBookingResponse|error {
 
         Booking booking = {
             bookingId: value.bookingId,
