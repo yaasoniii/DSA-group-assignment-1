@@ -30,17 +30,42 @@ function createSampleUsers(RentalServiceClient rentalClient) returns error? {
 
 }
 
+function addPropertyInteractive(RentalServiceClient rentalClient) returns error? {
+    string propertyId = io:readln("Property ID: ").trim();
+    string ownerId = io:readln("Owner (host) user ID: ").trim();
+    string name = io:readln("Property name: ").trim();
+    string description = io:readln("Description: ").trim();
+    string location = io:readln("Location: ").trim();
+    string propertyType = io:readln("Property type (e.g. Apartment, House): ").trim();
+    int bedrooms = readRequiredInt("Number of bedrooms: ");
+    float pricePerNight = readRequiredFloat("Price per night: ");
+
+    Property property = {
+        propertyId: propertyId,
+        ownerId: ownerId,
+        name: name,
+        description: description,
+        location: location,
+        propertyType: propertyType,
+        bedrooms: bedrooms,
+        pricePerNight: pricePerNight,
+        available: true
+    };
+
+    PropertyResponse response = check rentalClient->add_property({property: property});
+
+    io:println("\nADD PROPERTY RESULT:");
+    io:println("  Success : " + response.success.toString());
+    io:println("  Message : " + response.message);
+}
+
 function browseAvailableProperties(RentalServiceClient rentalClient) returns error? {
     io:println("Leave any filter blank to skip it.");
     string location = io:readln("Filter by location: ").trim();
     string propertyType = io:readln("Filter by property type: ").trim();
-    string minPriceInput = io:readln("Min price per night: ").trim();
-    string maxPriceInput = io:readln("Max price per night: ").trim();
-    string minBedroomsInput = io:readln("Min bedrooms: ").trim();
-
-    float minPrice = minPriceInput != "" ? check float:fromString(minPriceInput) : 0.0;
-    float maxPrice = maxPriceInput != "" ? check float:fromString(maxPriceInput) : 0.0;
-    int minBedrooms = minBedroomsInput != "" ? check int:fromString(minBedroomsInput) : 0;
+    float minPrice = readOptionalFloat("Min price per night: ");
+    float maxPrice = readOptionalFloat("Max price per night: ");
+    int minBedrooms = readOptionalInt("Min bedrooms: ");
 
     stream<Property, grpc:Error?> propertyStream = check rentalClient->list_available_properties({
         location: location,
@@ -53,106 +78,133 @@ function browseAvailableProperties(RentalServiceClient rentalClient) returns err
     io:println("\nAVAILABLE PROPERTIES BASED ON FILTERS:");
     int count = 0;
 
-    check from Property p in propertyStream
-        do {
+    record {|Property value;|}|grpc:Error? next = propertyStream.next();
+    while next is record {|Property value;|} {
+        Property p = next.value;
+        if p.propertyId != "" {
             count += 1;
-            io:println("  [" + p.propertyId + "] " + p.name + " - " + p.location + " | " + p.bedrooms.toString() + " bed | N$" + p.pricePerNight.toString() + "/night");
-        };
+            io:println("  [" + p.propertyId + "] " + p.name + " - " + p.location +
+                    " | " + p.bedrooms.toString() + " bed | N$" + p.pricePerNight.toString() + "/night");
+        }
+        next = propertyStream.next();
+    }
+
+    if next is grpc:Error {
+        return next;
+    }
 
     if count == 0 {
         io:println(" (No properties found based on the provided filters.)");
     }
-
 }
 
-function searchPropertyById(RentalServiceClient rentalClient) returns errors? {
+function searchPropertyById(RentalServiceClient rentalClient) returns error? {
     string propertyId = io:readln("Property ID to search for:").trim();
+
+    SearchPropertyResponse response = check rentalClient->search_property({
+        propertyId: propertyId
+    });
+
+    io:println("\nSEARCH RESULT:");
+    io:println("  Success : " + response.success.toString());
+    io:println("  Message : " + response.message);
+
+    if response.properties.length() == 0 {
+        io:println(" (no matching properties found)");
+    } else {
+        foreach Property p in response.properties {
+            string availability = p.available ? "Available" : "Not Available";
+            io:println(" [" + p.propertyId + "] " + p.name + "-" + p.location + " | " + p.bedrooms.toString() + " bed | N$" + p.pricePerNight.toString() + "/night | " + availability);
+        }
+    }
 }
 
 public function main() returns error? {
-    RentalServiceClient rentalClient = check new ("http://localhost:9090");
+    RentalServiceClient rentalClient = check new ("http://localhost:9090", timeout = 5);
 
-    Property property = {
-        propertyId: "PROP001",
-        ownerId: "USER001",
-        name: "Windhoek Apartment",
-        description: "Two bedroom apartment",
-        location: "Windhoek",
-        propertyType: "Apartment",
-        bedrooms: 2,
-        pricePerNight: 850.0,
-        available: true
-    };
+    boolean running = true;
 
-    PropertyResponse addResponse = check rentalClient->add_property({
-        property: property
-    });
+    while running {
+        io:println("\n=== RENTAL SYSTEM CLIENT MENU ===");
+        io:println("1. Add a property");
+        io:println("2. Create sample users (streaming)");
+        io:println("3. Browse available properties");
+        io:println("4. Search property by ID");
+        io:println("5. Exit");
 
-    io:println("ADD:");
-    io:println(addResponse);
+        string choice = io:readln("Select an option: ").trim();
 
-    SearchPropertyResponse searchResponse = check rentalClient->search_property({
-        propertyId: "PROP001"
-    });
+        match choice {
+            "1" => {
+                check addPropertyInteractive(rentalClient);
+            }
+            "2" => {
+                check createSampleUsers(rentalClient);
+            }
+            "3" => {
+                check browseAvailableProperties(rentalClient);
+            }
+            "4" => {
+                check searchPropertyById(rentalClient);
+            }
+            "5" => {
+                running = false;
+            }
+            _ => {
+                io:println("Invalid option, please try again.");
+            }
+        }
+    }
+}
 
-    io:println("SEARCH:");
-    io:println(searchResponse);
+function readOptionalFloat(string prompt) returns float {
+    while true {
+        string input = io:readln(prompt).trim();
+        if input == "" {
+            return 0.0;
+        }
+        float|error parsed = float:fromString(input);
+        if parsed is float {
+            return parsed;
+        }
+        io:println("  Invalid number, please try again or leave blank.");
+    }
+}
 
-    Property updatedProperty = {
-        propertyId: "PROP001",
-        ownerId: "USER001",
-        name: "Updated Windhoek Apartment",
-        description: "Updated apartment",
-        location: "Windhoek",
-        propertyType: "Apartment",
-        bedrooms: 3,
-        pricePerNight: 950.0,
-        available: true
-    };
+function readOptionalInt(string prompt) returns int {
+    while true {
+        string input = io:readln(prompt).trim();
+        if input == "" {
+            return 0;
+        }
+        int|error parsed = int:fromString(input);
+        if parsed is int {
+            return parsed;
+        }
+        io:println("  Invalid whole number, please try again or leave blank.");
+    }
+}
 
-    PropertyResponse updateResponse = check rentalClient->update_property({
-        propertyId: "PROP001",
-        property: updatedProperty
-    });
+function readRequiredFloat(string prompt) returns float {
+    while true {
+        string input = io:readln(prompt).trim();
+        float|error parsed = float:fromString(input);
+        if parsed is float {
+            return parsed;
+        }
+        io:println("  Invalid number, please try again (e.g. 950 or 950.50).");
+    }
+}
 
-    io:println("UPDATE:");
-    io:println(updateResponse);
+function readRequiredInt(string prompt) returns int {
+    while true {
+        string input = io:readln(prompt).trim();
+        int|error parsed = int:fromString(input);
+        if parsed is int {
+            return parsed;
+        }
+        io:println("  Invalid whole number, please try again (e.g. 3).");
+    }
 
-    //Replaced by browseAvailableProperties(rentalClient) function
-    //stream<Property, grpc:Error?> propertyStream =
-    //    check rentalClient->list_available_properties({
-    //    location: "Windhoek",
-    //    propertyType: "Apartment",
-    //    minPrice: 0.0,
-    //    maxPrice: 1000.0,
-    //    minBedrooms: 2
-    //});
-
-    //io:println("AVAILABLE PROPERTIES:");
-
-    //check from Property p in propertyStream
-      //  do {
-      //      io:println(p);
-      //  };
-
-    OperationResponse removeResponse = check rentalClient->remove_property({
-        propertyId: "PROP001"
-    });
-
-    io:println("REMOVE:");
-    io:println(removeResponse);
-
-    SearchPropertyResponse missingResponse = check rentalClient->search_property({
-        propertyId: "PROP001"
-    });
-
-    io:println("SEARCH AFTER DELETE:");
-    io:println(missingResponse);
-
-    check createSampleUsers(rentalClient);
-
-    check browseAvailableProperties(rentalClient);
-
-    check searchPropertyById(rentalClient);
 }
 
