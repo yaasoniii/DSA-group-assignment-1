@@ -30,7 +30,7 @@ function createSampleUsers(RentalServiceClient rentalClient) returns error? {
 
 }
 
-function addPropertyInteractive(RentalServiceClient rentalClient) returns error? {
+function addProperty(RentalServiceClient rentalClient) returns error? {
     string propertyId = io:readln("Property ID: ").trim();
     string ownerId = io:readln("Owner (host) user ID: ").trim();
     string name = io:readln("Property name: ").trim();
@@ -136,7 +136,7 @@ public function main() returns error? {
 
         match choice {
             "1" => {
-                check addPropertyInteractive(rentalClient);
+                check addProperty(rentalClient);
             }
             "2" => {
                 check createSampleUsers(rentalClient);
