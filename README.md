@@ -1,12 +1,13 @@
 # DSA612S — Assignment 1: Distributed Library & Rental Systems
 
 Group assignment for Distributed Systems and Applications (DSA612S), NUST.
-Two independent parts, each in its own top-level folder.
+Two independent parts, each in its own top-level folder — Q1 is a REST API,
+Q2 is gRPC.
 
 ## Prerequisites
-- Ballerina Swan Lake (2201.9.0 or later — most sub-projects here pin `2201.12.7`): https://ballerina.io/downloads/
-- Verify install: `bal version`
-- A `.devcontainer.json` is included in each `client`/`server` package if you prefer to develop in a container.
+- Ballerina Swan Lake 2201.9.0 or later (most sub-projects here pin `2201.12.7`): https://ballerina.io/downloads/
+- Check your install with `bal version`
+- Each `client`/`server` package includes a `.devcontainer.json` if you'd rather develop in a container
 
 ## Repository layout
 
@@ -51,19 +52,6 @@ Two independent parts, each in its own top-level folder.
         └── main.bal                   # menu covering all 8 RPCs
 ```
 
-## ⚠️ Known gaps
-
-The old `Service/` (capital S) vs `service/` (lowercase) folder split is **resolved** —
-everything now lives in the lowercase `service/` package, and `bal build` / `bal test`
-run from there.
-
-The asset `status` field is now validated against the assignment's enum
-(`AVAILABLE`, `LOANED_OUT`/`OCCUPIED`, `UNDER_MAINTENANCE`, `DISPOSED`) on
-create and update, and `tests/asset_service_test.bal` posts valid enum values.
-Still open: `dateAcquired` is not date-checked on the asset CRUD endpoints
-(`isValidDate` in `service/main.bal` is there to reuse). Q2 has no automated
-tests yet — everything there has only been exercised manually via the client.
-
 ## Running Question 1 (REST)
 
 **1. Start the service** (in one terminal):
@@ -80,7 +68,7 @@ bal run
 ```
 Follow the menu prompts.
 
-### Endpoints implemented (`service/main.bal`)
+### Endpoints (`service/main.bal`)
 
 | Method | Path | Purpose |
 |---|---|---|
@@ -92,7 +80,7 @@ Follow the menu prompts.
 | GET | `/library/assets/institution/{institution}` | Filter by institution (campus view) |
 | GET | `/library/assets/site/{site}` | Filter by site |
 | GET | `/library/assets/status/{status}` | Filter by status |
-| GET | `/library/assets/overdue` | Overdue dashboard (schedules of type MAINTENANCE past due). Optional `?asOf=YYYY-MM-DD` and `?institution=` query params |
+| GET | `/library/assets/overdue` | Overdue dashboard (maintenance schedules past due). Optional `?asOf=YYYY-MM-DD` and `?institution=` |
 | GET / POST / DELETE | `/library/institutions` | Manage institutions |
 | POST / DELETE | `/library/assets/{assetTag}/components` | Manage components |
 | POST / DELETE | `/library/assets/{assetTag}/schedules` | Manage servicing + booking schedules |
@@ -126,39 +114,31 @@ curl -X POST http://localhost:8080/library/assets \
   }'
 ```
 
-### Notes for the team (Q1)
+### A few things worth knowing (Q1)
 - All CRUD, filtering, institution, schedule, and work-order logic lives in
   `service/main.bal`. The client is split into one file per feature area
-  (see table above) plus shared helpers in `http_utils.bal`.
+  (see the menu list above) plus shared HTTP helpers in `http_utils.bal`.
 - `assets/overdue` compares each `MAINTENANCE` schedule's `dueDate` against
-  today's date via `time:utcToString(time:utcNow())`. Verified against
-  Ballerina 2201.13.4. Pass `?asOf=YYYY-MM-DD` to ask "what was overdue on
-  this day" instead of today, and `?institution=` to scope the dashboard to
-  one campus; an unparseable `asOf` returns `400`.
-- Status/type enums are matched case-insensitively and stored upper-cased,
-  so `"booking"` and `"BOOKING"` both work.
-- Error handling on the maintenance side (schedules, work orders, sub-tasks):
-  - `400` — blank `scheduleId`/`orderId`/`taskId`, a `type` outside
+  today's date. Pass `?asOf=YYYY-MM-DD` to check what was overdue on a
+  different day, and `?institution=` to scope it to one campus.
+- `status`/`type` values are matched case-insensitively and stored
+  upper-cased, so `"booking"` and `"BOOKING"` both work.
+- Validation on the maintenance side (schedules, work orders, sub-tasks):
+  - `400` for a blank `scheduleId`/`orderId`/`taskId`, a `type` outside
     `MAINTENANCE`/`BOOKING`, a status outside `OPEN`/`IN_PROGRESS`/`CLOSED`,
-    a `dueDate`/`asOf` that is not a real ISO calendar date (`2025-02-30` and
-    `15/01/2025` are both rejected), or a body `assetTag` that contradicts
-    the one in the URL.
-  - `404` — unknown asset, schedule, work order or sub-task. Deletes used to
-    return `200` for ids that were never there; they now 404.
-  - `409` — duplicate schedule/work-order/sub-task id, closing a work order
-    that still has incomplete sub-tasks, re-opening a `CLOSED` order, or
-    touching the sub-tasks of a closed order.
+    a `dueDate`/`asOf` that isn't a real calendar date, or a body `assetTag`
+    that contradicts the one in the URL.
+  - `404` for an unknown asset, schedule, work order or sub-task.
+  - `409` for a duplicate schedule/work-order/sub-task id, closing a work
+    order that still has incomplete sub-tasks, re-opening a `CLOSED` order,
+    or touching sub-tasks on an order that's already closed.
 - `PUT /assets/{assetTag}` only replaces `components`/`schedules`/`workOrders`
-  when the request actually sends them. Before, the client's asset-edit screen
-  (which sends only the asset's own fields) silently wiped every schedule and
-  work order on the asset.
-- Still open for whoever owns asset CRUD: `dateAcquired` is not date-checked.
-  `isValidDate` in `service/main.bal` is there to reuse.
-- `bal test` from the service package starts the listener itself, so the
-  tests in `tests/` run without a separate `bal run`.
-- The client is intentionally a thin wrapper over the HTTP API — if you go
-  for the bonus web/mobile client, it can call the exact same endpoints.
-- Run the service tests with `bal test` from `Question 1(Library system)/service`.
+  when the request body actually includes them, so editing an asset's own
+  fields doesn't wipe its schedules and work orders.
+- `bal test` from the service package starts its own listener, so the tests
+  under `tests/` run without a separate `bal run`.
+- The client is a thin wrapper over the HTTP API, so a bonus web/mobile
+  client could call the same endpoints without changes on the service side.
 
 ## Question 2 (gRPC — Rental Accommodation System)
 
@@ -173,14 +153,10 @@ client implement all 8 RPCs:
 - `confirm_booking` — computes `totalCost` from nights stayed × the
   property's nightly rate
 
-The gRPC server (`server/rentalservice_service.bal`) holds properties and
-bookings in in-memory maps. The gRPC client (`client/main.bal`) has a menu
+The server (`server/rentalservice_service.bal`) keeps properties and
+bookings in in-memory maps. The client (`client/main.bal`) has a menu
 option for every RPC, including reading the streamed response from
 `list_available_properties`.
-
-Known gap: there are no automated tests for Q2 yet (unlike Q1's
-`tests/asset_service_test.bal`) — it has only been verified by running the
-client against the server manually.
 
 **Running Q2:**
 ```
