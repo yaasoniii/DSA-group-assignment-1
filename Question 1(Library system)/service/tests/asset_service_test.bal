@@ -54,3 +54,37 @@ function testDeleteAsset() returns error? {
     http:Response getResp = check testClient->get("/assets/TEST001");
     test:assertEquals(getResp.statusCode, 404, "Asset should no longer exist");
 }
+
+@test:Config {}
+function testInvalidAssetStatus() returns error? {
+    json newAsset = {
+        assetTag: "STATUS001",
+        name: "Invalid Status Laptop",
+        description: "Testing invalid asset status",
+        institution: "Test University",
+        site: "Main Campus",
+        dateAcquired: "2026-01-01",
+        status: "ACTIVE"
+    };
+
+    http:Response createResp = check testClient->post("/assets", newAsset);
+    test:assertEquals(createResp.statusCode, 400,
+        "Expected 400 Bad Request for invalid asset status");
+}
+
+@test:Config {}
+function testInvalidDateAcquired() returns error? {
+    json newAsset = {
+        assetTag: "DATE001",
+        name: "Invalid Date Laptop",
+        description: "Testing invalid date",
+        institution: "Test University",
+        site: "Main Campus",
+        dateAcquired: "2026-02-30",
+        status: "AVAILABLE"
+    };
+
+    http:Response createResp = check testClient->post("/assets", newAsset);
+    test:assertEquals(createResp.statusCode, 400,
+        "Expected 400 Bad Request for invalid dateAcquired");
+}
