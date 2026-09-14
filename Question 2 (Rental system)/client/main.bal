@@ -119,6 +119,96 @@ function searchPropertyById(RentalServiceClient rentalClient) returns error? {
     }
 }
 
+function updateProperty(RentalServiceClient rentalClient) returns error? {
+    string propertyId = io:readln("Property ID to update: ").trim();
+    string ownerId = io:readln("Owner (host) user ID: ").trim();
+    string name = io:readln("New property name: ").trim();
+    string description = io:readln("New description: ").trim();
+    string location = io:readln("New location: ").trim();
+    string propertyType = io:readln("New property type (e.g. Apartment, House): ").trim();
+    int bedrooms = readRequiredInt("New number of bedrooms: ");
+    float pricePerNight = readRequiredFloat("New price per night: ");
+    boolean available = readRequiredBoolean("Available for booking? (y/n): ");
+
+    Property updated = {
+        propertyId: propertyId,
+        ownerId: ownerId,
+        name: name,
+        description: description,
+        location: location,
+        propertyType: propertyType,
+        bedrooms: bedrooms,
+        pricePerNight: pricePerNight,
+        available: available
+    };
+
+    PropertyResponse response = check rentalClient->update_property({
+        propertyId: propertyId,
+        property: updated
+    });
+
+    io:println("\nUPDATE PROPERTY RESULT:");
+    io:println("  Success : " + response.success.toString());
+    io:println("  Message : " + response.message);
+}
+
+function removeProperty(RentalServiceClient rentalClient) returns error? {
+    string propertyId = io:readln("Property ID to remove: ").trim();
+
+    OperationResponse response = check rentalClient->remove_property({
+        propertyId: propertyId
+    });
+
+    io:println("\nREMOVE PROPERTY RESULT:");
+    io:println("  Success : " + response.success.toString());
+    io:println("  Message : " + response.message);
+}
+
+function bookProperty(RentalServiceClient rentalClient) returns error? {
+    string propertyId = io:readln("Property ID to book: ").trim();
+    string userId = io:readln("Guest (user) ID: ").trim();
+    string checkInDate = io:readln("Check-in date (YYYY-MM-DD): ").trim();
+    string checkOutDate = io:readln("Check-out date (YYYY-MM-DD): ").trim();
+
+    BookingResponse response = check rentalClient->book_property({
+        propertyId: propertyId,
+        userId: userId,
+        checkInDate: checkInDate,
+        checkOutDate: checkOutDate
+    });
+
+    io:println("\nBOOK PROPERTY RESULT:");
+    io:println("  Success : " + response.success.toString());
+    io:println("  Message : " + response.message);
+
+    if response.success {
+        io:println("  Booking ID : " + response.booking.bookingId);
+        io:println("  Status     : " + response.booking.status);
+        io:println("  (Use this Booking ID with 'Confirm a booking' to finalize it.)");
+    }
+}
+
+function confirmBooking(RentalServiceClient rentalClient) returns error? {
+    string bookingId = io:readln("Booking ID to confirm: ").trim();
+
+    ConfirmBookingResponse response = check rentalClient->confirm_booking({
+        bookingId: bookingId
+    });
+
+    io:println("\nCONFIRM BOOKING RESULT:");
+    io:println("  Success : " + response.success.toString());
+    io:println("  Message : " + response.message);
+
+    if response.success {
+        io:println("  Booking ID  : " + response.booking.bookingId);
+        io:println("  Property ID : " + response.booking.propertyId);
+        io:println("  Check-in    : " + response.booking.checkInDate);
+        io:println("  Check-out   : " + response.booking.checkOutDate);
+        io:println("  Status      : " + response.booking.status);
+        io:println("  Total cost  : N$" + response.totalCost.toString());
+    }
+}
+
 public function main() returns error? {
     RentalServiceClient rentalClient = check new ("http://localhost:9090", timeout = 5);
 
@@ -127,10 +217,14 @@ public function main() returns error? {
     while running {
         io:println("\n=== RENTAL SYSTEM CLIENT MENU ===");
         io:println("1. Add a property");
-        io:println("2. Create sample users (streaming)");
-        io:println("3. Browse available properties");
-        io:println("4. Search property by ID");
-        io:println("5. Exit");
+        io:println("2. Update a property");
+        io:println("3. Remove a property");
+        io:println("4. Create sample users (streaming)");
+        io:println("5. Browse available properties");
+        io:println("6. Search property by ID");
+        io:println("7. Book a property");
+        io:println("8. Confirm a booking");
+        io:println("9. Exit");
 
         string choice = io:readln("Select an option: ").trim();
 
@@ -139,15 +233,27 @@ public function main() returns error? {
                 check addProperty(rentalClient);
             }
             "2" => {
-                check createSampleUsers(rentalClient);
+                check updateProperty(rentalClient);
             }
             "3" => {
-                check browseAvailableProperties(rentalClient);
+                check removeProperty(rentalClient);
             }
             "4" => {
-                check searchPropertyById(rentalClient);
+                check createSampleUsers(rentalClient);
             }
             "5" => {
+                check browseAvailableProperties(rentalClient);
+            }
+            "6" => {
+                check searchPropertyById(rentalClient);
+            }
+            "7" => {
+                check bookProperty(rentalClient);
+            }
+            "8" => {
+                check confirmBooking(rentalClient);
+            }
+            "9" => {
                 running = false;
             }
             _ => {
@@ -206,5 +312,18 @@ function readRequiredInt(string prompt) returns int {
         io:println("  Invalid whole number, please try again (e.g. 3).");
     }
 
+}
+
+function readRequiredBoolean(string prompt) returns boolean {
+    while true {
+        string input = io:readln(prompt).trim().toLowerAscii();
+        if input == "y" || input == "yes" {
+            return true;
+        }
+        if input == "n" || input == "no" {
+            return false;
+        }
+        io:println("  Please answer y or n.");
+    }
 }
 
