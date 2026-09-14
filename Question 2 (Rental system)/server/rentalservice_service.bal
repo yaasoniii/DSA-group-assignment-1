@@ -1,5 +1,7 @@
 import ballerina/grpc;
 import ballerina/io;
+import ballerina/uuid;
+import ballerina/time;
 
 listener grpc:Listener ep = new (9090);
 
@@ -17,6 +19,8 @@ map<Property> propertyStore = {
     }
 };
 map<User> userStore = {};
+map<Booking> bookingCart = {};
+map<Booking[]> confirmedBookings = {};
 
 @grpc:Descriptor {
     value: RENTAL_DESC
@@ -194,9 +198,40 @@ service "RentalService" on ep {
             status: "Pending"
         };
 
+        if !propertyStore.hasKey(value.propertyId) {
+            return {
+                success: false,
+                message: "Property not found",
+                booking: booking
+            };
+        }
+
+        time:Utc|time:Error checkIn = time:utcFromString(value.checkInDate + "T00:00:00.00Z");
+        time:Utc|time:Error checkOut = time:utcFromString(value.checkOutDate + "T00:00:00.00Z");
+
+        if checkIn is time:Error || checkOut is time:Error {
+            return {
+                success: false,
+                message: "Invalid date format, expected YYYY-MM-DD",
+                booking: booking
+            };
+        }
+
+        if time:utcDiffSeconds(checkOut, checkIn) <= 0d {
+            return {
+                success: false,
+                message: "Check-out date must be after check-in date",
+                booking: booking
+            };
+        }
+
+        string bookingId = uuid:createType1AsString();
+        booking.bookingId = bookingId;
+        bookingCart[bookingId] = booking;
+
         return {
-            success: false,
-            message: "Booking functionality not implemented yet",
+            success: true,
+            message: "Booking added to cart, pending confirmation",
             booking: booking
         };
     }
@@ -204,20 +239,92 @@ service "RentalService" on ep {
     remote function confirm_booking(ConfirmBookingRequest value)
                 returns ConfirmBookingResponse|error {
 
-        Booking booking = {
-            bookingId: value.bookingId,
-            propertyId: "",
-            userId: "",
-            checkInDate: "",
-            checkOutDate: "",
-            status: "Pending"
-        };
+        Booking? pending = bookingCart[value.bookingId];
+
+        if pending is () {
+            return {
+                success: false,
+                message: "No pending booking found for this booking ID",
+                booking: {
+                    bookingId: value.bookingId,
+                    propertyId: "",
+                    userId: "",
+                    checkInDate: "",
+                    checkOutDate: "",
+                    status: "Pending"
+                },
+                totalCost: 0.0
+            };
+        }
+
+        Booking booking = pending;
+
+        if !propertyStore.hasKey(booking.propertyId) {
+            return {
+                success: false,
+                message: "Property no longer available",
+                booking: booking,
+                totalCost: 0.0
+            };
+        }
+
+        Property property = propertyStore.get(booking.propertyId);
+
+        time:Utc|time:Error checkIn = time:utcFromString(booking.checkInDate + "T00:00:00.00Z");
+        time:Utc|time:Error checkOut = time:utcFromString(booking.checkOutDate + "T00:00:00.00Z");
+
+        if checkIn is time:Error || checkOut is time:Error {
+            return {
+                success: false,
+                message: "Stored booking has an invalid date format",
+                booking: booking,
+                totalCost: 0.0
+            };
+        }
+
+        time:Utc newCheckIn = checkIn;
+        time:Utc newCheckOut = checkOut;
+
+        Booking[] existing = confirmedBookings[booking.propertyId] ?: [];
+
+        foreach Booking other in existing {
+            time:Utc|time:Error otherCheckIn = time:utcFromString(other.checkInDate + "T00:00:00.00Z");
+            time:Utc|time:Error otherCheckOut = time:utcFromString(other.checkOutDate + "T00:00:00.00Z");
+
+            if otherCheckIn is time:Error || otherCheckOut is time:Error {
+                continue;
+            }
+
+            boolean overlaps = time:utcDiffSeconds(otherCheckOut, newCheckIn) > 0d &&
+                                time:utcDiffSeconds(newCheckOut, otherCheckIn) > 0d;
+
+            if overlaps {
+                return {
+                    success: false,
+                    message: "Property is already booked for the selected date range",
+                    booking: booking,
+                    totalCost: 0.0
+                };
+            }
+        }
+
+        decimal seconds = time:utcDiffSeconds(newCheckOut, newCheckIn);
+        int nights = <int> (seconds / 86400d);
+
+        decimal totalCost = property.pricePerNight * <decimal> nights;
+
+        booking.status = "Confirmed";
+        _ = bookingCart.remove(value.bookingId);
+
+        Booking[] updatedList = existing.clone();
+        updatedList.push(booking);
+        confirmedBookings[booking.propertyId] = updatedList;
 
         return {
-            success: false,
-            message: "Booking confirmation not implemented yet",
+            success: true,
+            message: "Booking confirmed",
             booking: booking,
-            totalCost: 0.0
+            totalCost: totalCost
         };
     }
 }
@@ -294,4 +401,3 @@ function matchesAvailableFilters(
 
     return true;
 }
-
