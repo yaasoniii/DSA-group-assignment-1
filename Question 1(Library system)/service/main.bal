@@ -80,6 +80,7 @@ public type StatusMessage record {|
 
 // ---------------- Validation ----------------
 
+final readonly & string[] ASSET_STATUSES = ["AVAILABLE", "LOANED_OUT", "UNDER_MAINTENANCE", "DISPOSED"];
 final readonly & string[] SCHEDULE_TYPES = ["MAINTENANCE", "BOOKING"];
 final readonly & string[] WORK_ORDER_STATUSES = ["OPEN", "IN_PROGRESS", "CLOSED"];
 
@@ -167,6 +168,16 @@ service /library on new http:Listener(8080) {
         if assetStore.hasKey(newAsset.assetTag) {
             return <http:Conflict>{body: {message: "Asset already exists: " + newAsset.assetTag}};
         }
+        string status = normalizeEnum(newAsset.status);
+        if ASSET_STATUSES.indexOf(status) is () {
+            return <http:BadRequest>{
+                body: {
+                    message: "status must be one of " + oneOf(ASSET_STATUSES) +
+                            ", got: '" + newAsset.status + "'"
+                }
+            };
+        }
+        newAsset.status = status;
         assetStore[newAsset.assetTag] = newAsset;
         return newAsset;
     }
@@ -199,13 +210,22 @@ service /library on new http:Listener(8080) {
                 }
             };
         }
+        string status = normalizeEnum(updated.status);
+        if ASSET_STATUSES.indexOf(status) is () {
+            return <http:BadRequest>{
+                body: {
+                    message: "status must be one of " + oneOf(ASSET_STATUSES) +
+                            ", got: '" + updated.status + "'"
+                }
+            };
+        }
         Asset merged = {
             assetTag: assetTag,
             name: updated.name,
             description: updated.description,
             institution: updated.institution,
             site: updated.site,
-            status: updated.status,
+            status: status,
             dateAcquired: updated.dateAcquired,
             components: updated.components ?: existing.components,
             schedules: updated.schedules ?: existing.schedules,

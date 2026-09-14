@@ -12,7 +12,7 @@ function testCreateAndGetAsset() returns error? {
         institution: "Test University",
         site: "Main Campus",
         dateAcquired: "2026-01-01",
-        status: "active"
+        status: "AVAILABLE"
     };
 
     http:Response createResp = check testClient->post("/assets", newAsset);
@@ -34,7 +34,7 @@ function testUpdateAsset() returns error? {
         institution: "Test University",
         site: "Main Campus",
         dateAcquired: "2026-01-01",
-        status: "inactive"
+        status: "UNDER_MAINTENANCE"
     };
 
     http:Response updateResp = check testClient->put("/assets/TEST001", updatedAsset);
@@ -43,7 +43,7 @@ function testUpdateAsset() returns error? {
     http:Response getResp = check testClient->get("/assets/TEST001");
     json payload = check getResp.getJsonPayload();
     test:assertEquals(payload.name, "Test Laptop Updated", "Asset name should be updated");
-    test:assertEquals(payload.status, "inactive", "Asset status should be updated");
+    test:assertEquals(payload.status, "UNDER_MAINTENANCE", "Asset status should be updated");
 }
 
 @test:Config { dependsOn: [testUpdateAsset] }
