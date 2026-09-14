@@ -56,7 +56,6 @@ message UpdatePropertyRequest {
     Property property = 2;
 }
 
-
 message RemovePropertyRequest {
     string propertyId = 1;
 }
@@ -124,7 +123,6 @@ message BookingResponse {
     string message = 2;
     Booking booking = 3;
 }
-
 
 message ConfirmBookingRequest {
     string bookingId = 1;
