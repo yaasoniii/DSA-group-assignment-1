@@ -80,7 +80,7 @@ public type StatusMessage record {|
 
 // ---------------- Validation ----------------
 
-final readonly & string[] ASSET_STATUSES = ["AVAILABLE", "LOANED_OUT", "UNDER_MAINTENANCE", "DISPOSED"];
+final readonly & string[] ASSET_STATUSES = ["AVAILABLE", "LOANED_OUT", "OCCUPIED", "UNDER_MAINTENANCE", "DISPOSED"];
 final readonly & string[] SCHEDULE_TYPES = ["MAINTENANCE", "BOOKING"];
 final readonly & string[] WORK_ORDER_STATUSES = ["OPEN", "IN_PROGRESS", "CLOSED"];
 

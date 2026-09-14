@@ -311,7 +311,7 @@ service "RentalService" on ep {
         decimal seconds = time:utcDiffSeconds(newCheckOut, newCheckIn);
         int nights = <int> (seconds / 86400d);
 
-        decimal totalCost = property.pricePerNight * <decimal> nights;
+        float totalCost = property.pricePerNight * <float> nights;
 
         booking.status = "Confirmed";
         _ = bookingCart.remove(value.bookingId);

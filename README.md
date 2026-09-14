@@ -14,7 +14,7 @@ Two independent parts, each in its own top-level folder.
 .
 ├── README.md
 ├── .gitignore
-├── Question 1(Library system)/        # Q1 — RESTful API (50 marks) — IN PROGRESS
+├── Question 1(Library system)/        # Q1 — RESTful API (50 marks)
 │   ├── service/                       # Ballerina REST API, port 8080
 │   │   ├── Ballerina.toml
 │   │   ├── Dependencies.toml
@@ -36,24 +36,33 @@ Two independent parts, each in its own top-level folder.
 │       ├── date_utils.bal             # ISO date validation + today's date
 │       └── http_utils.bal             # shared HTTP GET/POST/PUT/DELETE helpers
 │
-└── Question 2 (Rental system)/        # Q2 — gRPC (50 marks) — NOT STARTED
+└── Question 2 (Rental system)/        # Q2 — gRPC (50 marks)
     ├── proto/
-    │   └── rental.proto               # currently empty — service/messages not yet defined
-    ├── server/
+    │   └── rental.proto               # full contract — all 8 RPCs + messages
+    ├── server/                        # Ballerina gRPC server
     │   ├── Ballerina.toml
-    │   └── main.bal                   # still the generated "Hello, World!" stub
-    └── client/
+    │   ├── Dependencies.toml
+    │   ├── rental_pb.bal              # generated from rental.proto
+    │   └── rentalservice_service.bal  # all 8 RPCs implemented
+    └── client/                        # Ballerina gRPC client
         ├── Ballerina.toml
-        └── main.bal                   # still the generated "Hello, World!" stub
+        ├── Dependencies.toml
+        ├── rental_pb.bal              # generated from rental.proto
+        └── main.bal                   # menu covering all 8 RPCs
 ```
 
-## ⚠️ Still to fix before submitting Q1
+## ⚠️ Known gaps
 
 The old `Service/` (capital S) vs `service/` (lowercase) folder split is **resolved** —
 everything now lives in the lowercase `service/` package, and `bal build` / `bal test`
 run from there.
 
-Still open: `tests/asset_service_test.bal` posts `"status": "active"` / `"inactive"`, which aren't part of the assignment's status enum (`AVAILABLE`, `LOANED_OUT`/`OCCUPIED`, `UNDER_MAINTENANCE`, `DISPOSED`). The server doesn't currently validate the asset status value, so the tests still pass, but it's inconsistent with the spec — align the payloads first, then add the enum check to the asset endpoints.
+The asset `status` field is now validated against the assignment's enum
+(`AVAILABLE`, `LOANED_OUT`/`OCCUPIED`, `UNDER_MAINTENANCE`, `DISPOSED`) on
+create and update, and `tests/asset_service_test.bal` posts valid enum values.
+Still open: `dateAcquired` is not date-checked on the asset CRUD endpoints
+(`isValidDate` in `service/main.bal` is there to reuse). Q2 has no automated
+tests yet — everything there has only been exercised manually via the client.
 
 ## Running Question 1 (REST)
 
@@ -143,11 +152,8 @@ curl -X POST http://localhost:8080/library/assets \
   when the request actually sends them. Before, the client's asset-edit screen
   (which sends only the asset's own fields) silently wiped every schedule and
   work order on the asset.
-- Still open for whoever owns asset CRUD: the asset `status` field itself is
-  not validated against the enum, and `dateAcquired` is not date-checked.
-  `isValidDate` in `service/main.bal` is there to reuse — note that
-  `tests/asset_service_test.bal` currently posts `"active"`/`"inactive"`, so
-  those payloads need aligning first.
+- Still open for whoever owns asset CRUD: `dateAcquired` is not date-checked.
+  `isValidDate` in `service/main.bal` is there to reuse.
 - `bal test` from the service package starts the listener itself, so the
   tests in `tests/` run without a separate `bal run`.
 - The client is intentionally a thin wrapper over the HTTP API — if you go
@@ -156,28 +162,46 @@ curl -X POST http://localhost:8080/library/assets \
 
 ## Question 2 (gRPC — Rental Accommodation System)
 
-**Status: not yet started.** `proto/rental.proto` is empty, and both
-`server/main.bal` and `client/main.bal` are still the default generated
-`"Hello, World!"` stub.
+`proto/rental.proto` defines the full contract, and both the server and
+client implement all 8 RPCs:
+- `add_property`, `update_property`, `remove_property`
+- `create_users` (client streaming)
+- `list_available_properties` (server streaming)
+- `search_property`
+- `book_property` — rejects overlapping bookings for the same property via
+  date-range overlap checks
+- `confirm_booking` — computes `totalCost` from nights stayed × the
+  property's nightly rate
 
-Per the assignment brief, this needs:
-- A `.proto` contract defining `add_property`, `create_users` (client
-  streaming), `update_property`, `remove_property`, `list_available_properties`
-  (server streaming), `search_property`, `book_property`, and
-  `confirm_booking`.
-- A Ballerina gRPC server (`server/main.bal`) holding properties/bookings in
-  a `map`/`table`, with date-overlap validation and cost calculation on
-  `confirm_booking`.
-- A Ballerina gRPC client (`client/main.bal`) that exercises every RPC,
-  including handling the streamed response from `list_available_properties`.
+The gRPC server (`server/rentalservice_service.bal`) holds properties and
+bookings in in-memory maps. The gRPC client (`client/main.bal`) has a menu
+option for every RPC, including reading the streamed response from
+`list_available_properties`.
+
+Known gap: there are no automated tests for Q2 yet (unlike Q1's
+`tests/asset_service_test.bal`) — it has only been verified by running the
+client against the server manually.
+
+**Running Q2:**
+```
+cd "Question 2 (Rental system)/server"
+bal run
+```
+In another terminal:
+```
+cd "Question 2 (Rental system)/client"
+bal run
+```
 
 ## Submission checklist
 - [x] Fix `service`/`Service` folder casing in Q1
-- [ ] Align test payload status values with the assignment's status enum
+- [x] Align test payload status values with the assignment's status enum
 - [x] Add validation to schedules / work orders / sub-tasks (dates, enums, missing ids, duplicates)
-- [ ] Add asset-status enum + `dateAcquired` validation to the asset CRUD endpoints
-- [ ] Design `rental.proto` for Q2
-- [ ] Implement Q2 gRPC server
-- [ ] Implement Q2 gRPC client
+- [x] Add asset-status enum validation to the asset CRUD endpoints
+- [ ] Add `dateAcquired` validation to the asset CRUD endpoints
+- [x] Design `rental.proto` for Q2
+- [x] Implement Q2 gRPC server
+- [x] Implement Q2 gRPC client
+- [ ] Add automated tests for Q2
 - [ ] All group members added as contributors on the repo
 - [ ] Group presentation prepared
