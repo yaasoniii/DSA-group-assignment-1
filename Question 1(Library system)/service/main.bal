@@ -152,8 +152,128 @@ isolated function findTask(WorkOrder wo, string taskId) returns WorkOrderTask? {
     return ();
 }
 
-map<Asset> assetStore = {};
-map<string> institutionStore = {}; // acts as a set: name -> name
+map<Asset> assetStore = {
+    "NUST-LIB-3DP-001": {
+        assetTag: "NUST-LIB-3DP-001",
+        name: "Pro-Series 3D Printer",
+        description: "High-precision laboratory printer for simulation and prototype development.",
+        institution: "Namibia University of Science and Technology",
+        site: "Main Campus - Innovation Lab",
+        status: "AVAILABLE",
+        dateAcquired: "2024-03-10"
+    },
+    "NUST-RM-F90-R3": {
+        assetTag: "NUST-RM-F90-R3",
+        name: "Reflection Room 3 F90",
+        description: "Bookable library reflection room (NUST booking system rid=98).",
+        institution: "Namibia University of Science and Technology",
+        site: "Main Campus - Library",
+        status: "AVAILABLE",
+        dateAcquired: "2023-01-01"
+    },
+    "NUST-RM-G45": {
+        assetTag: "NUST-RM-G45",
+        name: "Discussion Room G45",
+        description: "Bookable library discussion room (NUST booking system rid=1).",
+        institution: "Namibia University of Science and Technology",
+        site: "Main Campus - Library",
+        status: "AVAILABLE",
+        dateAcquired: "2023-01-01"
+    },
+    "NUST-RM-G46": {
+        assetTag: "NUST-RM-G46",
+        name: "Discussion Room G46",
+        description: "Bookable library discussion room (NUST booking system rid=3).",
+        institution: "Namibia University of Science and Technology",
+        site: "Main Campus - Library",
+        status: "AVAILABLE",
+        dateAcquired: "2023-01-01"
+    },
+    "NUST-RM-G47": {
+        assetTag: "NUST-RM-G47",
+        name: "Discussion Room G47",
+        description: "Bookable library discussion room (NUST booking system rid=4).",
+        institution: "Namibia University of Science and Technology",
+        site: "Main Campus - Library",
+        status: "AVAILABLE",
+        dateAcquired: "2023-01-01"
+    },
+    "NUST-RM-G48": {
+        assetTag: "NUST-RM-G48",
+        name: "Discussion Room G48",
+        description: "Bookable library discussion room (NUST booking system rid=5).",
+        institution: "Namibia University of Science and Technology",
+        site: "Main Campus - Library",
+        status: "AVAILABLE",
+        dateAcquired: "2023-01-01"
+    },
+    "NUST-RM-G49": {
+        assetTag: "NUST-RM-G49",
+        name: "Discussion Room G49",
+        description: "Bookable library discussion room (NUST booking system rid=6).",
+        institution: "Namibia University of Science and Technology",
+        site: "Main Campus - Library",
+        status: "AVAILABLE",
+        dateAcquired: "2023-01-01"
+    },
+    "NUST-RM-S34": {
+        assetTag: "NUST-RM-S34",
+        name: "Discussion Room S34",
+        description: "Bookable library discussion room (NUST booking system rid=7).",
+        institution: "Namibia University of Science and Technology",
+        site: "Main Campus - Library",
+        status: "AVAILABLE",
+        dateAcquired: "2023-01-01"
+    },
+    "NUST-RM-S37": {
+        assetTag: "NUST-RM-S37",
+        name: "Discussion Room S37",
+        description: "Bookable library discussion room (NUST booking system rid=8).",
+        institution: "Namibia University of Science and Technology",
+        site: "Main Campus - Library",
+        status: "AVAILABLE",
+        dateAcquired: "2023-01-01"
+    },
+    "NUST-RM-S40": {
+        assetTag: "NUST-RM-S40",
+        name: "Discussion Room S40",
+        description: "Bookable library discussion room (NUST booking system rid=9).",
+        institution: "Namibia University of Science and Technology",
+        site: "Main Campus - Library",
+        status: "AVAILABLE",
+        dateAcquired: "2023-01-01"
+    },
+    "NUST-RM-F80": {
+        assetTag: "NUST-RM-F80",
+        name: "Study Carrel F80",
+        description: "Bookable library study carrel (NUST booking system rid=11).",
+        institution: "Namibia University of Science and Technology",
+        site: "Main Campus - Library",
+        status: "AVAILABLE",
+        dateAcquired: "2023-01-01"
+    },
+    "NUST-LT-4521": {
+        assetTag: "NUST-LT-4521",
+        name: "Dell Latitude 5420 Laptop",
+        description: "Loanable staff/student laptop, i5/16GB/512GB SSD.",
+        institution: "Namibia University of Science and Technology",
+        site: "Main Campus - IT Store",
+        status: "AVAILABLE",
+        dateAcquired: "2024-06-20"
+    },
+    "NUST-BK-DSA001": {
+        assetTag: "NUST-BK-DSA001",
+        name: "Distributed Systems Concepts and Design (6th Ed.)",
+        description: "Reference textbook for DSA612S, library reserve copy.",
+        institution: "Namibia University of Science and Technology",
+        site: "Main Campus - Library",
+        status: "LOANED_OUT",
+        dateAcquired: "2021-02-11"
+    }
+};
+map<string> institutionStore = {
+    "Namibia University of Science and Technology": "Namibia University of Science and Technology"
+}; // acts as a set: name -> name
 
 
 service /library on new http:Listener(8080) {
